@@ -262,14 +262,69 @@ function parseRss(xml) {
 async function resolveRedirect(url) {
   if (!url.includes('news.google.com')) return url;
   try {
-    const resp = await fetch(url, {
-      redirect: 'follow',
-      headers: SCRAPE_HEADERS,
-      signal: AbortSignal.timeout(5000),
-    });
-    return resp.url || url;
+    return await decodeGoogleNewsUrl(url);
   } catch {
     return url;
+  }
+}
+
+/**
+ * Decodes a Google News article URL (e.g. /rss/articles/CBMi...)
+ * using Google's internal batchexecute API.
+ * These URLs use encrypted article IDs that cannot be resolved
+ * via simple HTTP redirects or base64 decoding.
+ */
+async function decodeGoogleNewsUrl(articleUrl) {
+  try {
+    const parsedUrl = new URL(articleUrl);
+    const pathParts = parsedUrl.pathname.split('/');
+    const articlesIdx = pathParts.indexOf('articles');
+    if (articlesIdx === -1 || articlesIdx + 1 >= pathParts.length) return articleUrl;
+    const articleId = pathParts[articlesIdx + 1];
+    if (!articleId) return articleUrl;
+
+    // Build the batchexecute payload — mimics the googlenewsdecoder library
+    const innerPayload = JSON.stringify([
+      'garturlreq',
+      [['en', 'IN', 'IN', 1], articleId, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 2],
+    ]);
+    const outerPayload = JSON.stringify([[['Fbv4je', innerPayload, null, 'generic']]]);
+
+    const resp = await fetch(
+      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+          Referer: 'https://news.google.com/',
+          'User-Agent': SCRAPE_HEADERS['User-Agent'],
+        },
+        body: `f.req=${encodeURIComponent(outerPayload)}`,
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+
+    if (resp.status !== 200) return articleUrl;
+    const text = await resp.text();
+
+    // Response contains the decoded URL in pattern: \"garturlres\",\"<URL>\"
+    // or in raw JSON form: "garturlres","<URL>"
+    const patterns = [
+      /\\"garturlres\\",\\"(https?:[^"\\]+)\\"/,
+      /"garturlres","(https?:[^"]+)"/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        // Unescape any escaped forward slashes
+        return match[1].replace(/\\\//g, '/');
+      }
+    }
+
+    return articleUrl;
+  } catch {
+    return articleUrl;
   }
 }
 
