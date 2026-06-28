@@ -644,15 +644,13 @@ async function scrapePage(url, title) {
 
 async function handleHealth() {
   const tests = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en'),
-    'https://corsproxy.io/?' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en'),
-    'https://thingproxy.freeboard.io/fetch/' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')
+    'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')
   ];
   
   const results = {};
   for (const url of tests) {
     try {
-      const resp = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
       results[url] = { status: resp.status, ok: resp.ok, length: (await resp.text()).length };
     } catch (e) {
       results[url] = { error: e.message };
