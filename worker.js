@@ -260,6 +260,7 @@ function parseRss(xml) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 async function resolveRedirect(url) {
+  if (!url.includes('news.google.com')) return url;
   try {
     const resp = await fetch(url, {
       redirect: 'follow',

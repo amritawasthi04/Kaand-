@@ -1,3 +1,4 @@
+import 'package:http/http.dart' as http;
 import '../core/constants.dart';
 import '../models/article.dart';
 import '../services/firestore_cache.dart';
@@ -11,12 +12,14 @@ class NewsRepository {
 
   /// Fetches news by category. Employs a quick cache read first for RSS parsed lists.
   Future<List<Article>> fetchByCategory(String category) async {
-    return await _workerService.fetchNews(category: category);
+    final articles = await _workerService.fetchNews(category: category);
+    return await _resolveArticlesRedirects(articles);
   }
 
   /// Searches articles.
   Future<List<Article>> searchArticles(String query) async {
-    return await _workerService.fetchNews(query: query);
+    final articles = await _workerService.fetchNews(query: query);
+    return await _resolveArticlesRedirects(articles);
   }
 
   /// Scrapes the detail details of an article (body content description, image url)
@@ -92,6 +95,36 @@ class NewsRepository {
       onUpdated(updatedArticle);
     } catch (e) {
       print('[NewsRepository] Background revalidation failed: $e');
+    }
+  }
+
+  /// Resolves the redirects of multiple articles in parallel on the client side.
+  Future<List<Article>> _resolveArticlesRedirects(List<Article> articles) async {
+    final futures = articles.map((article) async {
+      if (article.url.startsWith('https://news.google.com')) {
+        final resolvedUrl = await _resolveRedirect(article.url);
+        return article.copyWithScrapeDetails(
+          description: article.description,
+          imageUrl: article.urlToImage,
+          resolvedUrl: resolvedUrl,
+        );
+      }
+      return article;
+    });
+    return await Future.wait(futures);
+  }
+
+  /// Lightweight GET request with followRedirects = false to resolve Location headers.
+  Future<String> _resolveRedirect(String url) async {
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(url))..followRedirects = false;
+      final response = await client.send(request);
+      final redirectUrl = response.headers['location'];
+      client.close();
+      return redirectUrl ?? url;
+    } catch (e) {
+      return url;
     }
   }
 }
