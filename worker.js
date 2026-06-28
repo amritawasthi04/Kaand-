@@ -277,10 +277,14 @@ async function decodeGoogleNewsUrl(articleUrl) {
     const base64 = pathParts[articlesIdx + 1];
     if (!base64) return articleUrl;
 
-    // Try decoding the base64 string
+    // Try decoding the base64 string (convert base64url to standard base64 first)
     let str;
     try {
-      str = atob(base64);
+      let base64Standard = base64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64Standard.length % 4) {
+        base64Standard += '=';
+      }
+      str = atob(base64Standard);
     } catch {
       return articleUrl;
     }
