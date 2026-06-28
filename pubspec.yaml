@@ -10,17 +10,33 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.32.0
+
+  # Firebase — use consistent v3
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.0
+
+  # State
   provider: ^6.1.2
+
+  # Network
   http: ^1.2.1
   cached_network_image: ^3.3.1
-  url_launcher: ^6.3.0
-  intl: ^0.19.0
-  shimmer: ^3.0.0
-  xml: ^6.5.0
-  html: ^0.15.4
+
+  # Cache
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  crypto: ^3.0.3
+
+  # RSS parsing
+  xml: ^6.5.0
+  html: ^0.15.4
+
+  # UI
+  url_launcher: ^6.3.0
+  shimmer: ^3.0.0
+  intl: ^0.19.0
+  share_plus: ^10.0.2
+  visibility_detector: ^0.4.0
 
 dev_dependencies:
   flutter_test:

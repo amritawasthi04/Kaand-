@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'provider/news_provider.dart';
+import 'core/constants.dart';
+import 'providers/news_provider.dart';
+import 'providers/user_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'theme/app_colors.dart';
+
+// UNCOMMENT these after running "flutterfire configure" in your project directory:
+// import 'package:firebase_core/firebase_core.dart';
+// import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // UNCOMMENT this after running "flutterfire configure" in your project directory:
+  /*
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await Hive.initFlutter();
-  await Hive.openBox('news_images');
+  */
 
-  // Provider lifted here — survives hot reload without recreating
+  await Hive.initFlutter();
+  await Hive.openBox(Constants.hiveNewsBox);
+  await Hive.openBox(Constants.hiveUserBox);
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => NewsProvider()..loadHeadlines(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => NewsProvider()),
+      ],
       child: const NewsApp(),
     ),
   );
@@ -29,12 +42,14 @@ class NewsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+
     return MaterialApp(
       title: 'Newstler',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
       themeMode: ThemeMode.dark,
-      home: const HomeScreen(),
+      home: userProvider.isOnboarded ? const HomeScreen() : const OnboardingScreen(),
     );
   }
 
@@ -104,25 +119,20 @@ class NewsApp extends StatelessWidget {
         labelMedium: TextStyle(color: AppColors.secondaryText),
         labelSmall: TextStyle(color: AppColors.mutedText),
       ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.btnPrimaryBackground,
-          foregroundColor: AppColors.primaryText,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      filledButtonTheme: _filledButtonThemeThemeData(),
+    );
+  }
+
+  // Helper custom class override for filled button themes
+  FilledButtonThemeData _filledButtonThemeThemeData() {
+    return FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.btnPrimaryBackground,
+        foregroundColor: AppColors.primaryText,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.elevatedCard,
-          foregroundColor: AppColors.primaryText,
-          side: const BorderSide(color: AppColors.divider),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
     );
   }
