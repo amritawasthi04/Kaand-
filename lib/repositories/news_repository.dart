@@ -1,4 +1,4 @@
-import 'package:http/http.dart' as http;
+import 'dart:io';
 import '../core/constants.dart';
 import '../models/article.dart';
 import '../services/firestore_cache.dart';
@@ -50,13 +50,17 @@ class NewsRepository {
       return firestoreArticle;
     }
 
-    // Completely new: Trigger scrape via Worker
+    // Completely new: Resolve redirect on client then scrape via Worker
     try {
-      final scraped = await _workerService.scrapeArticle(url, title: article.title);
+      String scrapeUrl = url;
+      if (url.contains('news.google.com')) {
+        scrapeUrl = await _resolveRedirect(url);
+      }
+      final scraped = await _workerService.scrapeArticle(scrapeUrl, title: article.title);
       final updatedArticle = article.copyWithScrapeDetails(
         description: scraped['description'],
         imageUrl: scraped['imageUrl'],
-        resolvedUrl: scraped['url'],
+        resolvedUrl: scraped['url'] ?? scrapeUrl,
       );
 
       // Save to Hive and Firestore
@@ -81,12 +85,16 @@ class NewsRepository {
         return;
       }
 
-      // 2. Fetch fresh by scraping via Worker
-      final scraped = await _workerService.scrapeArticle(url, title: article.title);
+      // 2. Fetch fresh by scraping via Worker (resolve redirect first)
+      String scrapeUrl = url;
+      if (url.contains('news.google.com')) {
+        scrapeUrl = await _resolveRedirect(url);
+      }
+      final scraped = await _workerService.scrapeArticle(scrapeUrl, title: article.title);
       final updatedArticle = article.copyWithScrapeDetails(
         description: scraped['description'],
         imageUrl: scraped['imageUrl'],
-        resolvedUrl: scraped['url'],
+        resolvedUrl: scraped['url'] ?? scrapeUrl,
       );
 
       // Update both caches
@@ -114,15 +122,26 @@ class NewsRepository {
     return await Future.wait(futures);
   }
 
-  /// Lightweight GET request with followRedirects = false to resolve Location headers.
+  /// Uses dart:io HttpClient to follow the full redirect chain from the mobile device.
+  /// Mobile IPs are not blocked by Google, unlike Cloudflare Worker datacenter IPs.
   Future<String> _resolveRedirect(String url) async {
     try {
-      final client = http.Client();
-      final request = http.Request('GET', Uri.parse(url))..followRedirects = false;
-      final response = await client.send(request);
-      final redirectUrl = response.headers['location'];
-      client.close();
-      return redirectUrl ?? url;
+      final httpClient = HttpClient();
+      httpClient.connectionTimeout = const Duration(seconds: 8);
+      final request = await httpClient.getUrl(Uri.parse(url));
+      request.followRedirects = true;
+      request.maxRedirects = 10;
+      final response = await request.close();
+      String finalUrl = url;
+      if (response.redirects.isNotEmpty) {
+        finalUrl = response.redirects.last.location.toString();
+      } else {
+        // If no redirect objects, use the response's actual URI
+        finalUrl = response.headers.value('location') ?? url;
+      }
+      await response.drain();
+      httpClient.close();
+      return finalUrl;
     } catch (e) {
       return url;
     }
