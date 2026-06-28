@@ -268,63 +268,122 @@ async function resolveRedirect(url) {
   }
 }
 
-/**
- * Decodes a Google News article URL (e.g. /rss/articles/CBMi...)
- * using Google's internal batchexecute API.
- * These URLs use encrypted article IDs that cannot be resolved
- * via simple HTTP redirects or base64 decoding.
- */
 async function decodeGoogleNewsUrl(articleUrl) {
   try {
     const parsedUrl = new URL(articleUrl);
     const pathParts = parsedUrl.pathname.split('/');
     const articlesIdx = pathParts.indexOf('articles');
     if (articlesIdx === -1 || articlesIdx + 1 >= pathParts.length) return articleUrl;
-    const articleId = pathParts[articlesIdx + 1];
-    if (!articleId) return articleUrl;
+    const base64 = pathParts[articlesIdx + 1];
+    if (!base64) return articleUrl;
 
-    // Build the batchexecute payload — mimics the googlenewsdecoder library
-    const innerPayload = JSON.stringify([
-      'garturlreq',
-      [['en', 'IN', 'IN', 1], articleId, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 2],
-    ]);
-    const outerPayload = JSON.stringify([[['Fbv4je', innerPayload, null, 'generic']]]);
+    // Try decoding the base64 string
+    let str;
+    try {
+      str = atob(base64);
+    } catch {
+      return articleUrl;
+    }
 
-    const resp = await fetch(
-      'https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-          Referer: 'https://news.google.com/',
-          'User-Agent': SCRAPE_HEADERS['User-Agent'],
-        },
-        body: `f.req=${encodeURIComponent(outerPayload)}`,
-        signal: AbortSignal.timeout(5000),
-      }
-    );
+    // Check prefix
+    const prefix = String.fromCharCode(0x08, 0x13, 0x22);
+    if (str.startsWith(prefix)) {
+      str = str.substring(prefix.length);
+    } else if (str.charCodeAt(0) === 0x08) {
+      str = str.substring(1);
+    }
 
-    if (resp.status !== 200) return articleUrl;
-    const text = await resp.text();
+    // Check suffix
+    const suffix = String.fromCharCode(0xd2, 0x01, 0x00);
+    if (str.endsWith(suffix)) {
+      str = str.substring(0, str.length - suffix.length);
+    }
 
-    // Response contains the decoded URL in pattern: \"garturlres\",\"<URL>\"
-    // or in raw JSON form: "garturlres","<URL>"
-    const patterns = [
-      /\\"garturlres\\",\\"(https?:[^"\\]+)\\"/,
-      /"garturlres","(https?:[^"]+)"/,
-    ];
+    // One or two bytes to skip
+    if (str.length === 0) return articleUrl;
+    const len = str.charCodeAt(0);
+    if (len >= 0x80) {
+      str = str.substring(2, len + 2);
+    } else {
+      str = str.substring(1, len + 1);
+    }
 
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        // Unescape any escaped forward slashes
-        return match[1].replace(/\\\//g, '/');
-      }
+    // If it's the new style (starts with AU_yqL), decode via batchexecute
+    if (str.startsWith('AU_yqL')) {
+      return await fetchDecodedBatchExecute(base64, articleUrl);
+    }
+
+    // Check if it's a valid URL, if so return it
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      return str;
     }
 
     return articleUrl;
   } catch {
     return articleUrl;
+  }
+}
+
+async function fetchDecodedBatchExecute(id, defaultUrl) {
+  try {
+    const innerPayload = [
+      "garturlreq",
+      [
+        ["en-US", "US", ["FINANCE_TOP_INDICES", "WEB_TEST_1_0_0"], null, null, 1, 1, "US:en", null, 180, null, null, null, null, null, 0, null, null, [1608992183, 723341000]],
+        "en-US",
+        "US",
+        1,
+        [2, 3, 4, 8],
+        1,
+        0,
+        "655000234",
+        0,
+        0,
+        null,
+        0
+      ],
+      id
+    ];
+
+    const outerPayload = [[[
+      "Fbv4je",
+      JSON.stringify(innerPayload),
+      null,
+      "generic"
+    ]]];
+
+    const resp = await fetch(
+      "https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+          Referer: "https://news.google.com/",
+          "User-Agent": SCRAPE_HEADERS["User-Agent"],
+        },
+        body: "f.req=" + encodeURIComponent(JSON.stringify(outerPayload)),
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+
+    if (resp.status !== 200) return defaultUrl;
+    const text = await resp.text();
+
+    const header = '[\\"garturlres\\",\\"';
+    const footer = '\\",';
+    if (!text.includes(header)) {
+      return defaultUrl;
+    }
+    const startIdx = text.indexOf(header) + header.length;
+    const start = text.substring(startIdx);
+    const endIdx = start.indexOf(footer);
+    if (endIdx === -1) return defaultUrl;
+    
+    let resolvedUrl = start.substring(0, endIdx);
+    resolvedUrl = resolvedUrl.replace(/\\\//g, '/');
+    return resolvedUrl;
+  } catch {
+    return defaultUrl;
   }
 }
 
