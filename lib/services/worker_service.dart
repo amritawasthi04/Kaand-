@@ -49,6 +49,7 @@ class WorkerService {
     return {
       'description': data['description'] as String?,
       'imageUrl': data['imageUrl'] as String?,
+      'url': data['url'] as String?,
     };
   }
 }

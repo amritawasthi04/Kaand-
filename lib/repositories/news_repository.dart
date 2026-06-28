@@ -53,6 +53,7 @@ class NewsRepository {
       final updatedArticle = article.copyWithScrapeDetails(
         description: scraped['description'],
         imageUrl: scraped['imageUrl'],
+        resolvedUrl: scraped['url'],
       );
 
       // Save to Hive and Firestore
@@ -82,6 +83,7 @@ class NewsRepository {
       final updatedArticle = article.copyWithScrapeDetails(
         description: scraped['description'],
         imageUrl: scraped['imageUrl'],
+        resolvedUrl: scraped['url'],
       );
 
       // Update both caches

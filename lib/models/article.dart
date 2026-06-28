@@ -82,13 +82,17 @@ class Article {
     );
   }
 
-  /// Creates a copy of the article with updated description and image from a details scrape
-  Article copyWithScrapeDetails({required String? description, required String? imageUrl}) {
+  /// Creates a copy of the article with updated description, image, and resolved URL from a details scrape
+  Article copyWithScrapeDetails({
+    required String? description,
+    required String? imageUrl,
+    String? resolvedUrl,
+  }) {
     return Article(
       title: title,
       description: description ?? this.description,
       urlToImage: imageUrl ?? this.urlToImage,
-      url: url,
+      url: resolvedUrl ?? url,
       author: author,
       publishedAt: publishedAt,
       sourceName: sourceName,

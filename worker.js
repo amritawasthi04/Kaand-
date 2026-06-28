@@ -690,7 +690,7 @@ async function handleNews(url) {
   const xml = await rssResp.text();
   const items = parseRss(xml);
 
-  // Resolve ALL redirects in parallel
+  // Resolve ALL redirects in parallel (this is fast, just follows headers)
   const redirectResults = await Promise.allSettled(
     items.map((item) => resolveRedirect(item.link))
   );
@@ -698,16 +698,17 @@ async function handleNews(url) {
     r.status === 'fulfilled' ? r.value : items[i].link
   );
 
-  // Scrape ALL pages in parallel
+  // Scrape ONLY the first 5 pages in parallel to prevent execution timeouts
+  const scrapeUrls = resolvedUrls.slice(0, 5);
   const scrapeResults = await Promise.allSettled(
-    resolvedUrls.map((u, i) => scrapePage(u, items[i].title))
+    scrapeUrls.map((u, i) => scrapePage(u, items[i].title))
   );
 
   const articles = items.map((item, i) => {
-    const scraped =
-      scrapeResults[i].status === 'fulfilled'
-        ? scrapeResults[i].value
-        : { imageUrl: null, description: null };
+    let scraped = { imageUrl: null, description: null };
+    if (i < 5 && scrapeResults[i] && scrapeResults[i].status === 'fulfilled') {
+      scraped = scrapeResults[i].value;
+    }
     return {
       title: item.title,
       url: resolvedUrls[i],
