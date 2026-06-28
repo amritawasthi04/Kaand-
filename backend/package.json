@@ -1,0 +1,13 @@
+{
+  "name": "newstler-backend",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Backend for Newstler Flutter App",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.57.1"
+  }
+}
