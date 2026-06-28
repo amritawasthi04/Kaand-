@@ -668,6 +668,7 @@ async function handleNews(url) {
   } else {
     rssUrl = `https://news.google.com/rss?hl=${hl}&gl=${gl}&ceid=${gl}:en`;
   }
+
   let rssResp;
   try {
     rssResp = await fetch(rssUrl, {
@@ -677,77 +678,66 @@ async function handleNews(url) {
     });
   } catch (e) {
     return json(
-      { error: "News RSS fetch connection timed out or failed", message: e.message },
+      { error: "RSS fetch connection timed out or failed", message: e.message },
       502
     );
   }
-  if (rssResp.status !== 200) {
+
+  if (!rssResp.ok) {
     return json(
-      { error: "News RSS returned non-200 status", status: rssResp.status },
+      { error: 'RSS fetch failed', status: rssResp.status },
       502
     );
   }
+
   const rssText = await rssResp.text();
   const parsedItems = parseRSS(rssText).slice(0, 20);
-  const redirectResults = await Promise.allSettled(
-    parsedItems.map((item) => resolveRedirect(item.link))
-  );
-  const resolvedUrls = redirectResults.map(
-    (r, i) => r.status === "fulfilled" ? r.value : parsedItems[i].link
-  );
-  const scrapeResults = await Promise.allSettled(
-    resolvedUrls.map((u, i) => {
-      if (u.includes("news.google.com")) {
-        return Promise.resolve({ imageUrl: null, description: null });
-      }
-      return scrapePage(u, parsedItems[i].title);
-    })
-  );
-  const articles = parsedItems.map((item, i) => {
-    let scraped = { imageUrl: null, description: null };
-    if (scrapeResults[i] && scrapeResults[i].status === "fulfilled") {
-      scraped = scrapeResults[i].value;
-    }
-    return {
-      title: item.title,
-      url: resolvedUrls[i],
-      source: item.source,
-      publishedAt: item.pubDate,
-      imageUrl: scraped.imageUrl,
-      description: scraped.description
-    };
-  });
+
+  if (parsedItems.length === 0) {
+    return json({ status: 'ok', count: 0, articles: [] });
+  }
+
+  const articles = parsedItems.map(item => ({
+    title:       item.title,
+    url:         item.link,
+    source:      item.source,
+    publishedAt: item.pubDate,
+    imageUrl:    null,
+    description: null,
+  }));
+
   return json(
-    { status: "ok", count: articles.length, articles },
+    { status: 'ok', count: articles.length, articles },
     200,
-    { "Cache-Control": "public, max-age=900" }
+    { 'Cache-Control': 'public, max-age=900' }
   );
 }
 __name(handleNews, "handleNews");
 async function handleArticle(url) {
-  const params = url.searchParams;
-  const articleUrl = params.get("url");
-  const title = params.get("title") || "";
-  if (!articleUrl) {
-    return json({ error: "Missing url parameter" }, 400);
-  }
-  const resolved = await resolveRedirect(articleUrl);
-  if (resolved.includes('news.google.com')) {
+  const params     = url.searchParams;
+  const articleUrl = params.get('url');
+  const title      = params.get('title') || '';
+
+  if (!articleUrl) 
+    return json({ error: 'Missing url parameter' }, 400);
+
+  if (articleUrl.includes('news.google.com')) {
     return json({
       status: 'ok', url: articleUrl,
       imageUrl: null, description: null,
     }, 200, { 'Cache-Control': 'public, max-age=300' });
   }
-  const scraped = await scrapePage(resolved, title);
+
+  const scraped = await scrapePage(articleUrl, title);
   return json(
     {
-      status: "ok",
-      url: resolved,
-      imageUrl: scraped.imageUrl,
-      description: scraped.description
+      status:      'ok',
+      url:         articleUrl,
+      imageUrl:    scraped.imageUrl,
+      description: scraped.description,
     },
     200,
-    { "Cache-Control": "public, max-age=3600" }
+    { 'Cache-Control': 'public, max-age=3600' }
   );
 }
 __name(handleArticle, "handleArticle");

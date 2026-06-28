@@ -11,123 +11,203 @@ class NewsRepository {
   final HiveCache _hiveCache = HiveCache();
   final FirestoreCache _firestoreCache = FirestoreCache();
 
-  /// Fetches news by category. Employs a quick cache read first for RSS parsed lists.
   Future<List<Article>> fetchByCategory(String category) async {
-    final articles = await _workerService.fetchNews(category: category);
-    return await _resolveArticlesRedirects(articles);
+    try {
+      final articles = await _workerService.fetchNews(category: category);
+      return await _resolveArticlesClientSide(articles);
+    } catch (e) {
+      print('[NewsRepository] fetchByCategory: $e');
+      rethrow;
+    }
   }
 
-  /// Searches articles.
   Future<List<Article>> searchArticles(String query) async {
-    final articles = await _workerService.fetchNews(query: query);
-    return await _resolveArticlesRedirects(articles);
+    try {
+      final articles = await _workerService.fetchNews(query: query);
+      return await _resolveArticlesClientSide(articles);
+    } catch (e) {
+      print('[NewsRepository] searchArticles: $e');
+      rethrow;
+    }
   }
 
-  /// Scrapes the detail details of an article (body content description, image url)
-  /// using Stale-While-Revalidate (SWR) logic.
-  /// Calls [onUpdated] callback when background refresh finishes with new data.
+  Future<List<Article>> _resolveArticlesClientSide(List<Article> articles) async {
+    final futures = articles.map((article) async {
+      try {
+        if (!article.url.contains('news.google.com')) {
+          return article;
+        }
+        final realUrl = await _resolveRedirect(article.url);
+        if (realUrl.contains('news.google.com')) {
+          return article;
+        }
+        return article.copyWithScrapeDetails(
+          description: article.description,
+          imageUrl: article.urlToImage,
+          resolvedUrl: realUrl,
+        );
+      } catch (e) {
+        print('[NewsRepository] _resolveArticlesClientSide: $e');
+        return article;
+      }
+    });
+    return await Future.wait(futures, eagerError: false);
+  }
+
   Future<Article> getArticleDetails(Article article, {required Function(Article) onUpdated}) async {
     final url = article.url;
     if (url.isEmpty) return article;
 
-    // 1. Check local Hive Cache
-    final cached = _hiveCache.getArticle(url);
+    final String workingUrl;
+    try {
+      workingUrl = url.contains('news.google.com')
+          ? await _resolveRedirect(url)
+          : url;
+    } catch (e) {
+      print('[NewsRepository] getArticleDetails url resolution: $e');
+      return article;
+    }
+
+    if (workingUrl.contains('news.google.com')) {
+      return article;
+    }
+
+    Article? cached;
+    try {
+      cached = _hiveCache.getArticle(workingUrl);
+    } catch (e) {
+      print('[NewsRepository] HiveCache read in getArticleDetails: $e');
+    }
+
     if (cached != null) {
-      final isFresh = _hiveCache.isFresh(url, Constants.detailTtl);
+      bool isFresh = false;
+      try {
+        isFresh = _hiveCache.isFresh(workingUrl, Constants.detailTtl);
+      } catch (e) {
+        print('[NewsRepository] HiveCache isFresh: $e');
+      }
+
       if (isFresh) {
         return cached;
       }
       
-      // STALE: return cached immediately, fetch fresh in background
       _backgroundRevalidate(article, onUpdated);
       return cached;
     }
 
-    // MISS: No local cache.
-    // Try shared Firestore Cache first
-    final firestoreArticle = await _firestoreCache.getArticle(url);
+    Article? firestoreArticle;
+    try {
+      firestoreArticle = await _firestoreCache.getArticle(workingUrl);
+    } catch (e) {
+      print('[NewsRepository] FirestoreCache read in getArticleDetails: $e');
+    }
+
     if (firestoreArticle != null) {
-      await _hiveCache.saveArticle(url, firestoreArticle);
+      try {
+        await _hiveCache.saveArticle(workingUrl, firestoreArticle);
+      } catch (e) {
+        print('[NewsRepository] HiveCache write in getArticleDetails: $e');
+      }
       return firestoreArticle;
     }
 
-    // Completely new: Resolve redirect on client then scrape via Worker
+    final Map<String, String?> scraped;
     try {
-      String scrapeUrl = url;
-      if (url.contains('news.google.com')) {
-        scrapeUrl = await _resolveRedirect(url);
-      }
-      final scraped = await _workerService.scrapeArticle(scrapeUrl, title: article.title);
-      final updatedArticle = article.copyWithScrapeDetails(
-        description: scraped['description'],
-        imageUrl: scraped['imageUrl'],
-        resolvedUrl: scraped['url'] ?? scrapeUrl,
-      );
-
-      // Save to Hive and Firestore
-      await _hiveCache.saveArticle(url, updatedArticle);
-      await _firestoreCache.saveArticle(url, updatedArticle);
-      return updatedArticle;
+      scraped = await _workerService.scrapeArticle(workingUrl, title: article.title);
     } catch (e) {
-      print('[NewsRepository] Error scraping article details: $e');
-      return article; // Return original
+      print('[NewsRepository] Worker scrapeArticle in getArticleDetails: $e');
+      return article;
     }
+
+    final updatedArticle = article.copyWithScrapeDetails(
+      description: scraped['description'],
+      imageUrl: scraped['imageUrl'],
+      resolvedUrl: scraped['url'] ?? workingUrl,
+    );
+
+    try {
+      await _hiveCache.saveArticle(workingUrl, updatedArticle);
+    } catch (e) {
+      print('[NewsRepository] HiveCache save updatedArticle in getArticleDetails: $e');
+    }
+
+    try {
+      await _firestoreCache.saveArticle(workingUrl, updatedArticle);
+    } catch (e) {
+      print('[NewsRepository] FirestoreCache save updatedArticle in getArticleDetails: $e');
+    }
+
+    return updatedArticle;
   }
 
-  /// Background revalidation logic for stale articles
   Future<void> _backgroundRevalidate(Article article, Function(Article) onUpdated) async {
     final url = article.url;
+    if (url.isEmpty) return;
+
     try {
-      // 1. Fetch fresh from Firestore cache
-      final firestoreArticle = await _firestoreCache.getArticle(url);
+      final String workingUrl;
+      try {
+        workingUrl = url.contains('news.google.com')
+            ? await _resolveRedirect(url)
+            : url;
+      } catch (e) {
+        print('[NewsRepository] _backgroundRevalidate url resolution: $e');
+        return;
+      }
+
+      if (workingUrl.contains('news.google.com')) {
+        return;
+      }
+
+      Article? firestoreArticle;
+      try {
+        firestoreArticle = await _firestoreCache.getArticle(workingUrl);
+      } catch (e) {
+        print('[NewsRepository] FirestoreCache read in _backgroundRevalidate: $e');
+      }
+
       if (firestoreArticle != null) {
-        await _hiveCache.saveArticle(url, firestoreArticle);
+        try {
+          await _hiveCache.saveArticle(workingUrl, firestoreArticle);
+        } catch (e) {
+          print('[NewsRepository] HiveCache write firestoreArticle in _backgroundRevalidate: $e');
+        }
         onUpdated(firestoreArticle);
         return;
       }
 
-      // 2. Fetch fresh by scraping via Worker (resolve redirect first)
-      String scrapeUrl = url;
-      if (url.contains('news.google.com')) {
-        scrapeUrl = await _resolveRedirect(url);
+      final Map<String, String?> scraped;
+      try {
+        scraped = await _workerService.scrapeArticle(workingUrl, title: article.title);
+      } catch (e) {
+        print('[NewsRepository] Worker scrapeArticle in _backgroundRevalidate: $e');
+        return;
       }
-      final scraped = await _workerService.scrapeArticle(scrapeUrl, title: article.title);
+
       final updatedArticle = article.copyWithScrapeDetails(
         description: scraped['description'],
         imageUrl: scraped['imageUrl'],
-        resolvedUrl: scraped['url'] ?? scrapeUrl,
+        resolvedUrl: scraped['url'] ?? workingUrl,
       );
 
-      // Update both caches
-      await _hiveCache.saveArticle(url, updatedArticle);
-      await _firestoreCache.saveArticle(url, updatedArticle);
+      try {
+        await _hiveCache.saveArticle(workingUrl, updatedArticle);
+      } catch (e) {
+        print('[NewsRepository] HiveCache save updatedArticle in _backgroundRevalidate: $e');
+      }
+
+      try {
+        await _firestoreCache.saveArticle(workingUrl, updatedArticle);
+      } catch (e) {
+        print('[NewsRepository] FirestoreCache save updatedArticle in _backgroundRevalidate: $e');
+      }
+
       onUpdated(updatedArticle);
     } catch (e) {
-      print('[NewsRepository] Background revalidation failed: $e');
+      print('[NewsRepository] _backgroundRevalidate outer error: $e');
     }
   }
 
-  /// Resolves the redirects of multiple articles in parallel on the client side.
-  Future<List<Article>> _resolveArticlesRedirects(List<Article> articles) async {
-    final futures = articles.map((article) async {
-      if (article.url.startsWith('https://news.google.com')) {
-        final resolvedUrl = await _resolveRedirect(article.url);
-        return article.copyWithScrapeDetails(
-          description: article.description,
-          imageUrl: article.urlToImage,
-          resolvedUrl: resolvedUrl,
-        );
-      }
-      return article;
-    });
-    return await Future.wait(futures);
-  }
-
-  /// Resolves Google News redirect URLs to original publisher URLs on the client device
-  /// using Google's internal batchexecute API. Since Google News redirect links
-  /// return a 200 OK HTML page with JavaScript-based redirection (not a standard
-  /// 301/302 HTTP redirect), standard redirect followers fail. This method resolves
-  /// them directly and quickly from the phone (which is not blocked by Google WAF).
   Future<String> _resolveRedirect(String url) async {
     if (!url.contains('news.google.com')) return url;
     try {
