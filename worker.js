@@ -643,22 +643,8 @@ async function scrapePage(url, title) {
 // ROUTE: /health
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-async function handleHealth() {
-  const tests = [
-    'https://feed2json.org/convert?url=' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')
-  ];
-  
-  const results = {};
-  for (const url of tests) {
-    try {
-      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      results[url] = { status: resp.status, ok: resp.ok, length: (await resp.text()).length };
-    } catch (e) {
-      results[url] = { error: e.message };
-    }
-  }
-  
-  return json({ status: 'ok', timestamp: new Date().toISOString(), results });
+function handleHealth() {
+  return json({ status: 'ok', timestamp: new Date().toISOString() });
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -859,7 +845,7 @@ export default {
 
       switch (path) {
         case '/health':
-          return await handleHealth();
+          return handleHealth();
         case '/news':
           return await handleNews(url);
         case '/article':
