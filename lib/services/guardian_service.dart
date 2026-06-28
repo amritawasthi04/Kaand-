@@ -6,27 +6,29 @@ import '../models/article.dart';
 class GuardianService {
   Future<List<Article>> fetchBlogs({String? section, String? query}) async {
     final Map<String, String> queryParams = {
-      'api-key': Constants.guardianApiKey,
-      'show-fields': 'headline,trailText,thumbnail,byline,bodyText',
-      'page-size': '20',
+      'key': Constants.guardianApiKey,
     };
 
-    if (section != null && section.toLowerCase() != 'all') {
-      queryParams['section'] = section;
-    }
     if (query != null && query.trim().isNotEmpty) {
       queryParams['q'] = query;
+    } else {
+      queryParams['section'] = section ?? 'world';
     }
 
-    final uri = Uri.parse('${Constants.guardianBaseUrl}/search').replace(queryParameters: queryParams);
-    
+    final uri = Uri.parse('${Constants.workerBaseUrl}/guardian')
+        .replace(queryParameters: queryParams);
+
     final response = await http.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch from Guardian API: status ${response.statusCode}');
+      throw Exception('Failed to fetch from Guardian endpoint: status ${response.statusCode}');
     }
 
     final data = json.decode(response.body);
-    final results = data['response']?['results'] as List? ?? [];
-    return results.map((x) => Article.fromGuardian(x)).toList();
+    if (data['status'] != 'ok') {
+      throw Exception('Guardian endpoint returned error');
+    }
+
+    final List articlesList = data['articles'] ?? [];
+    return articlesList.map((x) => Article.fromWorkerJson(x)).toList();
   }
 }

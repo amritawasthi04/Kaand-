@@ -1,6 +1,6 @@
-name = "newstler-backend"
+name = "kaand-worker"
 main = "worker.js"
-compatibility_date = "2024-05-02"
+compatibility_date = "2024-09-01"
 
-[observability]
-enabled = true
+[vars]
+GUARDIAN_API_KEY = "placeholder"

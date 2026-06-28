@@ -1,5 +1,5 @@
 class Constants {
-  static const String workerBaseUrl = 'https://newstler-backend.amritawasthi04.workers.dev';
+  static const String workerBaseUrl = 'https://kaand-worker.amritawasthi04.workers.dev';
   static const String guardianBaseUrl = 'https://content.guardianapis.com';
   static const String guardianApiKey = 'test';
 
