@@ -8,19 +8,15 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'theme/app_colors.dart';
 
-// UNCOMMENT these after running "flutterfire configure" in your project directory:
-// import 'package:firebase_core/firebase_core.dart';
-// import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // UNCOMMENT this after running "flutterfire configure" in your project directory:
-  /*
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  */
 
   await Hive.initFlutter();
   await Hive.openBox(Constants.hiveNewsBox);
