@@ -666,11 +666,17 @@ async function handleNews(url) {
     rssUrl = `https://news.google.com/rss?hl=${hl}&gl=${gl}&ceid=${gl}:en`;
   }
 
+  const RSS_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+
   let rssResp;
   try {
     rssResp = await fetch(rssUrl, {
-      headers: SCRAPE_HEADERS,
-      signal: AbortSignal.timeout(5000),
+      headers: RSS_HEADERS,
+      signal: AbortSignal.timeout(10000),
       cf: { cacheTtl: 900 },
     });
   } catch (e) {
