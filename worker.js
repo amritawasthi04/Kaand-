@@ -642,8 +642,27 @@ async function scrapePage(url, title) {
 // ROUTE: /health
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function handleHealth() {
-  return json({ status: 'ok', timestamp: new Date().toISOString() });
+async function handleHealth() {
+  const tests = [
+    'https://news.google.com/rss',
+    'https://news.google.com/news/rss',
+    'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en',
+    'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
+    'https://news.google.com/rss/search?q=india',
+    'https://news.google.com/rss/search?q=india&hl=en-IN&gl=IN&ceid=IN:en'
+  ];
+  
+  const results = {};
+  for (const url of tests) {
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      results[url] = { status: resp.status, ok: resp.ok, length: (await resp.text()).length };
+    } catch (e) {
+      results[url] = { error: e.message };
+    }
+  }
+  
+  return json({ status: 'ok', timestamp: new Date().toISOString(), results });
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -825,7 +844,7 @@ export default {
 
       switch (path) {
         case '/health':
-          return handleHealth();
+          return await handleHealth();
         case '/news':
           return await handleNews(url);
         case '/article':
