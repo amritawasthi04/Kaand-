@@ -1,4 +1,4 @@
-name = "kaand-worker"
+name = "kaand"
 main = "worker.js"
 compatibility_date = "2024-09-01"
 
