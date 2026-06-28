@@ -644,7 +644,7 @@ async function scrapePage(url, title) {
 
 async function handleHealth() {
   const tests = [
-    'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')
+    'https://feed2json.org/convert?url=' + encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')
   ];
   
   const results = {};
