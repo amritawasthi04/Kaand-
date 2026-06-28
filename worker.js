@@ -680,44 +680,63 @@ async function handleNews(url) {
     rssUrl = `https://news.google.com/rss?hl=${hl}&gl=${gl}&ceid=${gl}:en`;
   }
 
-  let rssResp;
+  const proxyUrl = `https://feed2json.org/convert?url=${encodeURIComponent(rssUrl)}`;
+  let feedResp;
   try {
-    rssResp = await fetch(rssUrl, {
+    feedResp = await fetch(proxyUrl, {
       signal: AbortSignal.timeout(10000),
       cf: { cacheTtl: 900 },
     });
   } catch (e) {
     return json(
-      { error: 'RSS fetch connection timed out or failed', message: e.message },
+      { error: 'News proxy fetch connection timed out or failed', message: e.message },
       502
     );
   }
 
-  if (rssResp.status !== 200) {
+  if (feedResp.status !== 200) {
     return json(
-      { error: 'RSS fetch returned non-200 status', status: rssResp.status },
+      { error: 'News proxy returned non-200 status', status: feedResp.status },
       502
     );
   }
 
-  const xml = await rssResp.text();
-  const items = parseRss(xml);
+  const data = await feedResp.json();
+  const rawItems = data.items || [];
+  const items = rawItems.slice(0, 20); // Limit to top 20 items
+
+  // Parse items and extract source/clean title
+  const parsedItems = items.map((item) => {
+    let source = 'Google News';
+    let title = item.title || '';
+    const lastHyphen = title.lastIndexOf(' - ');
+    if (lastHyphen !== -1) {
+      source = title.substring(lastHyphen + 3).trim();
+      title = title.substring(0, lastHyphen).trim();
+    }
+    return {
+      title,
+      link: item.url || '',
+      pubDate: item.date_published || '',
+      source,
+    };
+  });
 
   // Resolve ALL redirects in parallel (this is fast, just follows headers)
   const redirectResults = await Promise.allSettled(
-    items.map((item) => resolveRedirect(item.link))
+    parsedItems.map((item) => resolveRedirect(item.link))
   );
   const resolvedUrls = redirectResults.map((r, i) =>
-    r.status === 'fulfilled' ? r.value : items[i].link
+    r.status === 'fulfilled' ? r.value : parsedItems[i].link
   );
 
   // Scrape ONLY the first 5 pages in parallel to prevent execution timeouts
   const scrapeUrls = resolvedUrls.slice(0, 5);
   const scrapeResults = await Promise.allSettled(
-    scrapeUrls.map((u, i) => scrapePage(u, items[i].title))
+    scrapeUrls.map((u, i) => scrapePage(u, parsedItems[i].title))
   );
 
-  const articles = items.map((item, i) => {
+  const articles = parsedItems.map((item, i) => {
     let scraped = { imageUrl: null, description: null };
     if (i < 5 && scrapeResults[i] && scrapeResults[i].status === 'fulfilled') {
       scraped = scrapeResults[i].value;
