@@ -666,13 +666,23 @@ async function handleNews(url) {
     rssUrl = `https://news.google.com/rss?hl=${hl}&gl=${gl}&ceid=${gl}:en`;
   }
 
-  const rssResp = await fetch(rssUrl, {
-    signal: AbortSignal.timeout(5000),
-    cf: { cacheTtl: 900 },
-  });
+  let rssResp;
+  try {
+    rssResp = await fetch(rssUrl, {
+      headers: SCRAPE_HEADERS,
+      signal: AbortSignal.timeout(5000),
+      cf: { cacheTtl: 900 },
+    });
+  } catch (e) {
+    return json(
+      { error: 'RSS fetch connection timed out or failed', message: e.message },
+      502
+    );
+  }
+
   if (rssResp.status !== 200) {
     return json(
-      { error: 'RSS fetch failed', status: rssResp.status },
+      { error: 'RSS fetch returned non-200 status', status: rssResp.status },
       502
     );
   }
