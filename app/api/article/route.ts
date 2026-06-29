@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
     // Validate parameter structure via Zod
     const parsed = QuerySchema.safeParse({ url: urlVal });
     if (!parsed.success) {
-      return errorResponse('Invalid URL format', 'INVALID_URL', 400);
+      const errors = parsed.error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+      return errorResponse('Invalid URL format', 'INVALID_URL', 400, errors);
     }
 
     const { url } = parsed.data;

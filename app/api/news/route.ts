@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
     // Validate request query parameters via Zod
     const parsed = QuerySchema.safeParse(queryParams);
     if (!parsed.success) {
-      return errorResponse('Invalid query parameters', 'INVALID_QUERY', 400);
+      const errors = parsed.error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+      return errorResponse('Invalid query parameters', 'INVALID_QUERY', 400, errors);
     }
 
     const { category, search, page, limit } = parsed.data;
