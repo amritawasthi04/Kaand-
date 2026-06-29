@@ -1,13 +1,34 @@
 {
   "name": "newstler-backend",
   "version": "1.0.0",
-  "description": "Cloudflare Worker Backend for Newstler Flutter App",
-  "main": "worker.js",
+  "description": "Next.js Backend for KAAND News App",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.13.0",
+    "@mozilla/readability": "^0.5.0",
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0-rc.12",
+    "firebase-admin": "^12.1.1",
+    "jsdom": "^24.1.0",
+    "next": "^14.2.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rss-parser": "^3.13.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "wrangler": "^3.57.1"
+    "@types/jsdom": "^21.1.7",
+    "@types/mozilla-readability": "^0.2.2",
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.4",
+    "typescript": "^5.5.2"
   }
 }

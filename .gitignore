@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Next.js / Node.js
+node_modules/
+.next/
+out/
+.env
+.env*.local
+.vercel
+

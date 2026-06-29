@@ -148,8 +148,8 @@ class NewsRepository {
       final String workingUrl;
       try {
         workingUrl = url.contains('news.google.com')
-            ? await _resolveRedirect(url)
-            : url;
+            ? (await _resolveRedirect(url)).trim()
+            : url.trim();
       } catch (e) {
         print('[NewsRepository] _backgroundRevalidate url resolution: $e');
         return;
