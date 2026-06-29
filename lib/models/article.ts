@@ -12,4 +12,8 @@ export interface Article {
   content: string;
   readTime: number;
   language: string;
+  tags?: string[];
+  extractionScore?: number;
+  extractorUsed?: string;
+  cached?: boolean;
 }

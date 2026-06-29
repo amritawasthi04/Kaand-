@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { handleOptions } from '../../../lib/utils/cors';
 import { successResponse, errorResponse } from '../../../lib/utils/response';
 import { getArticleCache, setArticleCache } from '../../../lib/firebase/firestore';
-import { scrapeArticleUrl } from '../../../lib/scraper';
-import { generateGeminiSummary } from '../../../lib/ai/gemini';
+import { runExtractionEngine } from '../../../lib/extractor/engine';
+import { aiCleanup, generateGeminiSummary } from '../../../lib/ai/gemini';
 import { Article } from '../../../lib/models/article';
 import { md5 } from '../../../lib/utils/hash';
 
@@ -39,18 +39,21 @@ export async function GET(request: NextRequest) {
     // 1. Check if article details are already cached in Firestore
     const cached = await getArticleCache(url);
     if (cached) {
-      console.log(`Cache HIT for article: ${url}`);
-      return successResponse(cached);
+      console.log(`Universal Engine: Cache HIT for article: ${url}`);
+      return successResponse({
+        ...cached,
+        cached: true,
+      });
     }
 
-    console.log(`Cache MISS. Scraping article: ${url}`);
+    console.log(`Universal Engine: Cache MISS. Starting crawler for: ${url}`);
 
-    // 2. Perform HTML and text scraping (Cheerio + Readability)
-    let scraped;
+    // 2. Perform modular extraction (using Registry, Cleaner, Adapters, Generic fallback, and Scorer)
+    let engineResult;
     try {
-      scraped = await scrapeArticleUrl(url);
+      engineResult = await runExtractionEngine(url);
     } catch (scrapeError: any) {
-      console.error(`Scraping failed for ${url}:`, scrapeError);
+      console.error(`Universal Engine: Crawler failed for ${url}:`, scrapeError);
       return errorResponse(
         `Failed to crawl article content: ${scrapeError.message || 'Scraper timeout'}`,
         'SCRAPING_FAILED',
@@ -58,41 +61,57 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Generate AI summary and reading time using Google Gemini
-    let aiResult;
+    const { article, score, extractorUsed } = engineResult;
+
+    // 3. AI Content Polish: Remove residual page layouts / boilerplate
+    let polishedContent = article.content;
     try {
-      aiResult = await generateGeminiSummary(scraped.content, scraped.title);
+      polishedContent = await aiCleanup(article.content, article.title);
+    } catch (cleanupError) {
+      console.warn('Universal Engine: AI text polishing failed, falling back to raw extract:', cleanupError);
+    }
+
+    // 4. AI Summarization & Classification (Gemini 1.5 Flash query)
+    let summaryResult;
+    try {
+      summaryResult = await generateGeminiSummary(polishedContent, article.title);
     } catch (aiError: any) {
-      console.error(`AI summary generation failed for ${url}:`, aiError);
-      aiResult = {
-        summary: scraped.description || 'No detailed summary available (AI model error).',
-        readTime: Math.max(1, Math.ceil(scraped.content.length / 1000)),
+      console.error(`Universal Engine: AI summarizer failed for ${url}:`, aiError);
+      summaryResult = {
+        summary: article.description || 'No summary details generated (AI model timeout).',
+        readTime: Math.max(1, Math.ceil(polishedContent.length / 1000)),
+        category: 'general',
+        tags: [],
       };
     }
 
-    // 4. Construct unified Article schema
+    // 5. Construct Normalized Output
     const newArticle: Article = {
       id: md5(url),
-      title: scraped.title,
-      description: scraped.description,
-      summary: aiResult.summary,
-      image: scraped.image,
+      title: article.title,
+      description: article.description,
+      summary: summaryResult.summary,
+      image: article.image,
       url,
-      author: scraped.author,
-      source: scraped.source,
-      publishedAt: scraped.publishedAt,
-      category: 'scraped',
-      content: scraped.content,
-      readTime: aiResult.readTime,
-      language: 'en',
+      author: article.author,
+      source: article.source,
+      publishedAt: article.publishedAt,
+      category: summaryResult.category || 'general',
+      content: polishedContent,
+      readTime: summaryResult.readTime,
+      language: article.language,
+      tags: summaryResult.tags,
+      extractionScore: score,
+      extractorUsed: extractorUsed,
+      cached: false,
     };
 
-    // 5. Store in Firestore Cache
+    // 6. Save back to Firestore Cache
     await setArticleCache(url, newArticle);
 
     return successResponse(newArticle);
   } catch (error: any) {
     console.error('Error in GET /api/article:', error);
-    return errorResponse(error.message || 'Failed to process article', 'ARTICLE_PROCESS_ERROR');
+    return errorResponse(error.message || 'Failed to process article extraction', 'ARTICLE_PROCESS_ERROR');
   }
 }
