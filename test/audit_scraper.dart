@@ -3,57 +3,61 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
-// Supported publishers mapping
-final Map<String, String> publishers = {
+// Direct RSS Feeds mapping for all supported publishers
+final Map<String, String> publisherFeeds = {
   // Indian
-  'NDTV': 'ndtv.com',
-  'The Hindu': 'thehindu.com',
-  'Indian Express': 'indianexpress.com',
-  'Times of India': 'timesofindia.indiatimes.com',
-  'Hindustan Times': 'hindustantimes.com',
-  'News18': 'news18.com',
-  'Firstpost': 'firstpost.com',
-  'Moneycontrol': 'moneycontrol.com',
-  'LiveMint': 'livemint.com',
-  'Economic Times': 'economictimes.indiatimes.com',
-  'Zee News': 'zeenews.india.com',
-  'India Today': 'indiatoday.in',
-  'Republic World': 'republicworld.com',
-  'ANI': 'aninews.in',
+  'NDTV': 'https://feeds.feedburner.com/ndtvnews-top-stories',
+  'The Hindu': 'https://www.thehindu.com/news/national/feeder/default.rss',
+  'Indian Express': 'https://indianexpress.com/feed/',
+  'Times of India': 'https://timesofindia.indiatimes.com/rssfeedmostrecent.cms',
+  'Hindustan Times': 'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml',
+  'News18': 'https://www.news18.com/rss/india.xml',
+  'Firstpost': 'https://www.firstpost.com/rss/india.xml',
+  'Moneycontrol': 'https://www.moneycontrol.com/rss/latestnews.xml',
+  'LiveMint': 'https://www.livemint.com/rss/news',
+  'Economic Times': 'https://economictimes.indiatimes.com/rssfeedstopstories.cms',
+  'Zee News': 'https://zeenews.india.com/rss/india-national-news.xml',
+  'India Today': 'https://www.indiatoday.in/rss/home',
+  'Republic World': 'https://www.republicworld.com/rss/india-news.xml',
+  'ANI': 'https://aninews.in/rss/feed/',
+  
   // International
-  'BBC': 'bbc.com',
-  'Reuters': 'reuters.com',
-  'CNN': 'cnn.com',
-  'AP News': 'apnews.com',
-  'Al Jazeera': 'aljazeera.com',
-  'The Guardian': 'theguardian.com',
-  'New York Times': 'nytimes.com',
-  'Washington Post': 'washingtonpost.com',
-  'Bloomberg': 'bloomberg.com',
-  'CNBC': 'cnbc.com',
-  'Fox News': 'foxnews.com',
-  'ABC News': 'abcnews.go.com',
-  'Sky News': 'news.sky.com',
-  'NBC News': 'nbcnews.com',
+  'BBC': 'http://feeds.bbci.co.uk/news/rss.xml',
+  'Reuters': 'https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en',
+  'CNN': 'http://rss.cnn.com/rss/edition.rss',
+  'AP News': 'https://apnews.com/hub/ap-top-news.rss',
+  'Al Jazeera': 'https://www.aljazeera.com/xml/rss/all.xml',
+  'The Guardian': 'https://www.theguardian.com/international/rss',
+  'New York Times': 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+  'Washington Post': 'https://www.washingtonpost.com/rss/national',
+  'Bloomberg': 'https://news.google.com/rss/search?q=site:bloomberg.com&hl=en-US&gl=US&ceid=US:en',
+  'CNBC': 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+  'Fox News': 'https://moxie.foxnews.com/feed/latest.xml',
+  'ABC News': 'https://abcnews.go.com/abcnews/topstories',
+  'Sky News': 'https://news.sky.com/feeds/info/public/home.xml',
+  'NBC News': 'https://feeds.nbcnews.com/nbcnews/public/world',
+  
   // Tech
-  'TechCrunch': 'techcrunch.com',
-  'The Verge': 'theverge.com',
-  'Wired': 'wired.com',
-  'Ars Technica': 'arstechnica.com',
-  'Engadget': 'engadget.com',
-  'Android Authority': 'androidauthority.com',
-  '9to5Google': '9to5google.com',
+  'TechCrunch': 'https://techcrunch.com/feed/',
+  'The Verge': 'https://www.theverge.com/rss/index.xml',
+  'Wired': 'https://www.wired.com/feed/rss',
+  'Ars Technica': 'https://feeds.arstechnica.com/arstechnica/index',
+  'Engadget': 'https://www.engadget.com/rss.xml',
+  'Android Authority': 'https://www.androidauthority.com/feed/',
+  '9to5Google': 'https://9to5google.com/feed/',
+  
   // Sports
-  'ESPN': 'espn.com',
-  'Cricbuzz': 'cricbuzz.com',
-  'ICC': 'icc-cricket.com',
-  'FIFA': 'fifa.com',
-  'Formula1': 'formula1.com',
+  'ESPN': 'https://www.espn.com/espn/rss/news',
+  'Cricbuzz': 'https://www.cricbuzz.com/tony/soccer/rss1/news',
+  'ICC': 'https://news.google.com/rss/search?q=site:icc-cricket.com&hl=en-US&gl=US&ceid=US:en',
+  'FIFA': 'https://news.google.com/rss/search?q=site:fifa.com&hl=en-US&gl=US&ceid=US:en',
+  'Formula1': 'https://www.formula1.com/content/fom-website/en/latest/all.xml.rss',
+  
   // Entertainment
-  'Variety': 'variety.com',
-  'Deadline': 'deadline.com',
-  'Rolling Stone': 'rollingstone.com',
-  'IGN': 'ign.com',
+  'Variety': 'https://variety.com/feed/',
+  'Deadline': 'https://deadline.com/feed/',
+  'Rolling Stone': 'https://www.rollingstone.com/feed/',
+  'IGN': 'https://feeds.feedburner.com/ign/news',
 };
 
 String resolveGoogleNewsUrl(String link) {
@@ -72,10 +76,9 @@ String resolveGoogleNewsUrl(String link) {
     final bytes = base64.decode(normalized);
     final decoded = utf8.decode(bytes, allowMalformed: true);
     
-    final match = RegExp(r'https?://[^\s\x00-\x1F\x7F-\x9F\u00A0-\uFFFF]+').firstMatch(decoded);
+    final match = RegExp(r"https?://[^\s\x00-\x1F\x7F-\x9F\u00A0-\uFFFF]+").firstMatch(decoded);
     if (match != null) {
       var urlStr = match.group(0)!;
-      // Truncate any trailing garbage characters
       while (urlStr.isNotEmpty && urlStr.codeUnitAt(urlStr.length - 1) > 126) {
         urlStr = urlStr.substring(0, urlStr.length - 1);
       }
@@ -87,21 +90,23 @@ String resolveGoogleNewsUrl(String link) {
   return link;
 }
 
-Future<String?> getRecentArticleUrl(String domain) async {
+Future<String?> getRecentArticleUrlFromFeed(String name, String feedUrl) async {
   try {
-    final searchUrl = Uri.parse('https://news.google.com/rss/search?q=site:$domain&hl=en-US&gl=US&ceid=US:en');
-    final response = await http.get(searchUrl).timeout(const Duration(seconds: 10));
+    final response = await http.get(Uri.parse(feedUrl)).timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return null;
 
     final document = xml.XmlDocument.parse(response.body);
     final items = document.findAllElements('item');
     if (items.isEmpty) return null;
 
-    // Get the first item link
-    final link = items.first.findElements('link').first.innerText;
+    // Try finding direct link inside item
+    final linkEl = items.first.findElements('link');
+    if (linkEl.isEmpty) return null;
+    final link = linkEl.first.innerText.trim();
+    
     return resolveGoogleNewsUrl(link);
   } catch (e) {
-    print('Error finding article for $domain: $e');
+    print('Error parsing feed for $name: $e');
     return null;
   }
 }
@@ -113,20 +118,20 @@ void main() async {
   int passes = 0;
   int fails = 0;
 
-  for (final entry in publishers.entries) {
+  for (final entry in publisherFeeds.entries) {
     final name = entry.key;
-    final domain = entry.value;
+    final feedUrl = entry.value;
 
-    print('Testing $name ($domain)...');
-    final articleUrl = await getRecentArticleUrl(domain);
+    print('Testing $name...');
+    final articleUrl = await getRecentArticleUrlFromFeed(name, feedUrl);
     if (articleUrl == null) {
-      print('❌ FAILED to get recent article link from RSS feed.');
+      print('❌ FAILED to get recent article link from RSS feed ($feedUrl).');
       fails++;
       results.add({
         'publisher': name,
         'status': 'FAIL',
-        'error': 'Could not fetch sample article URL from RSS',
-        'scrapeTime': 0,
+        'error': 'Could not parse RSS feed XML',
+        'scrapeTime': '0.00',
       });
       continue;
     }
@@ -141,39 +146,42 @@ void main() async {
       final elapsedSec = (elapsedMs / 1000).toStringAsFixed(2);
 
       if (apiResponse.statusCode != 200) {
-        print('❌ FAILED with status code: ${apiResponse.statusCode}');
+        print('❌ FAILED with status code: ${apiResponse.statusCode} | URL: $articleUrl');
         fails++;
         results.add({
           'publisher': name,
           'status': 'FAIL',
           'scrapeTime': elapsedSec,
-          'error': 'API returned status code ${apiResponse.statusCode}. Body: ${apiResponse.body.substring(0, Math.min(apiResponse.body.length, 100))}',
+          'error': 'API returned status code ${apiResponse.statusCode}. Msg: ${apiResponse.body.substring(0, Math.min(apiResponse.body.length, 100))}',
+          'url': articleUrl,
         });
         continue;
       }
 
       final jsonMap = jsonDecode(apiResponse.body) as Map<String, dynamic>;
       if (jsonMap['success'] != true) {
-        print('❌ FAILED: success field is false. Error: ${jsonMap['message']}');
+        print('❌ FAILED: success field is false. URL: $articleUrl');
         fails++;
         results.add({
           'publisher': name,
           'status': 'FAIL',
           'scrapeTime': elapsedSec,
           'error': jsonMap['message'] ?? 'Unknown error response',
+          'url': articleUrl,
         });
         continue;
       }
 
       final data = jsonMap['data'] as Map<String, dynamic>?;
       if (data == null) {
-        print('❌ FAILED: Data block is missing.');
+        print('❌ FAILED: Data block is missing. URL: $articleUrl');
         fails++;
         results.add({
           'publisher': name,
           'status': 'FAIL',
           'scrapeTime': elapsedSec,
           'error': 'Data block is null',
+          'url': articleUrl,
         });
         continue;
       }
@@ -185,6 +193,7 @@ void main() async {
       final image = data['image'] as String?;
       final author = data['author'] as String?;
       final publishedAt = data['publishedAt'] as String?;
+      final extractorUsed = data['extractorUsed'] as String? ?? 'generic';
 
       final titlePass = title != null && title.isNotEmpty;
       final descPass = description != null && description.isNotEmpty;
@@ -196,10 +205,10 @@ void main() async {
       final isPass = titlePass && contentPass; // Critical criteria: Title & Content must exist
 
       if (isPass) {
-        print('✅ PASSED in $elapsedSec seconds.');
+        print('✅ PASSED in $elapsedSec seconds. Extractor: $extractorUsed');
         passes++;
       } else {
-        print('❌ FAILED field validation.');
+        print('❌ FAILED field validation. Title: $titlePass, Content: $contentPass');
         fails++;
       }
 
@@ -213,6 +222,7 @@ void main() async {
         'image': imagePass ? 'PASS' : 'FAIL',
         'author': authorPass ? 'PASS' : 'FAIL',
         'date': datePass ? 'PASS' : 'FAIL',
+        'extractorUsed': extractorUsed,
         'url': articleUrl,
         'error': isPass ? null : 'Missing title or content block',
       });

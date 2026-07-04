@@ -5,6 +5,7 @@ import { CATEGORY_FEEDS, LOG_VERBOSE } from '../constants';
 import * as cheerio from 'cheerio';
 import { db } from '../firebase/config';
 import axios from 'axios';
+import { sanitizeXml } from '../utils/xml';
 
 const logInfo = (...args: any[]) => {
   if (LOG_VERBOSE) console.log(...args);
@@ -210,7 +211,24 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
   const feedTasks = feeds.map((feedUrl) => async () => {
     logInfo(`[RSS INFO] Fetching RSS: ${feedUrl}`);
     try {
-      const feed = await parser.parseURL(feedUrl);
+      // Fetch XML raw data directly
+      const response = await axios.get(feedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        timeout: rssTimeout,
+      });
+      const rawXml = response.data;
+      if (!rawXml || typeof rawXml !== 'string') {
+        throw new Error('Received invalid or empty XML response from feed server.');
+      }
+      
+      // Sanitize XML declaration, characters, and entities
+      const sanitizedXml = sanitizeXml(rawXml);
+      
+      // Parse RSS string
+      const feed = await parser.parseString(sanitizedXml);
       logInfo(`[RSS INFO] Feed Title: "${feed.title || 'Unknown'}" | Items Count: ${feed.items?.length || 0}`);
       
       const mapped = feed.items.map((item) => {

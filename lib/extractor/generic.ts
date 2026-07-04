@@ -53,9 +53,23 @@ export async function extractGeneric(
   // Resolve basic metadata priorities
   const title = ogTitle || jsonld.headline || $('h1').first().text().trim() || $('title').text().trim() || 'No Title';
   const description = ogDescription || jsonld.description || '';
-  const image = ogImage || 
-                (jsonld.image && (typeof jsonld.image === 'string' ? jsonld.image : jsonld.image.url)) || 
-                '';
+  let finalImage = getMeta(['og:image']) || 
+                   getMeta(['twitter:image']) || 
+                   (jsonld.image && (typeof jsonld.image === 'string' ? jsonld.image : jsonld.image.url)) || 
+                   getMeta(['thumbnailUrl']) ||
+                   '';
+
+  if (!finalImage) {
+    $('article img, main img, .entry-content img, .post-content img, img').each((_, imgEl) => {
+      const src = $(imgEl).attr('src') || $(imgEl).attr('data-src') || $(imgEl).attr('data-lazy-src');
+      if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon') && !src.includes('pixel')) {
+        finalImage = src;
+        return false;
+      }
+    });
+  }
+
+  const image = finalImage;
   const author = ogAuthor || 
                  (jsonld.author && (typeof jsonld.author === 'string' ? jsonld.author : jsonld.author.name)) || 
                  'Staff';
