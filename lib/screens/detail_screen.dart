@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import '../models/article.dart';
 import '../theme/app_colors.dart';
 import '../widgets/detail_sheet.dart';
@@ -28,6 +29,11 @@ class DetailScreen extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: article.urlToImage!,
                 fit: BoxFit.cover,
+                placeholder: (context, url) => Shimmer.fromColors(
+                  baseColor: AppColors.surface,
+                  highlightColor: Colors.white10,
+                  child: Container(color: Colors.white),
+                ),
                 errorWidget: (context, url, error) => Container(
                   color: AppColors.surface,
                   child: const Center(

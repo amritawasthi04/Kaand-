@@ -21,7 +21,7 @@ dependencies:
   # Network
   http: ^1.2.1
   dio: ^5.4.0
-  cached_network_image: ^3.3.1
+  cached_network_image: ^3.4.1
 
   # Cache
   hive: ^2.2.3

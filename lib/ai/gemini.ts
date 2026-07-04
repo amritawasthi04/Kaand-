@@ -39,6 +39,20 @@ export async function aiCleanup(content: string, title: string): Promise<string>
   }
 }
 
+function getExtractiveSummary(content: string): string {
+  if (!content) return '';
+  const paragraphs = content.split('\n')
+    .map(p => p.trim())
+    .filter(p => p.length > 50 && !p.toLowerCase().includes('subscribe') && !p.toLowerCase().includes('cookie') && !p.toLowerCase().includes('sign up'));
+  
+  const extracted = paragraphs.slice(0, 3).join('\n\n');
+  const words = extracted.split(/\s+/);
+  if (words.length > 120) {
+    return words.slice(0, 120).join(' ') + '...';
+  }
+  return extracted;
+}
+
 export async function generateGeminiSummary(
   content: string,
   title: string
@@ -48,8 +62,9 @@ export async function generateGeminiSummary(
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   if (!genAI || !content || content.trim().length < 50) {
+    const extSum = getExtractiveSummary(content);
     return {
-      summary: `${title}\n\nNo detailed summary available (AI engine offline).`,
+      summary: extSum || `${title}\n\nSummary unavailable.`,
       readTime,
       category: 'general',
       tags: [],
