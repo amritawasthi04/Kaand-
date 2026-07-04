@@ -1,16 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/article.dart';
 import '../repositories/news_repository.dart';
-import '../services/guardian_service.dart';
 
 enum NewsStatus { idle, loading, success, error }
 
 class NewsProvider extends ChangeNotifier {
   final NewsRepository _repository = NewsRepository();
-  final GuardianService _guardianService = GuardianService();
 
-  List<Article> _articles = [];
-  List<Article> get articles => _articles;
+  List<Article> _allArticles = [];
+  List<Article> _filteredArticles = [];
+  List<Article> get articles => _filteredArticles;
+
+  List<Article> get trendingArticles => _filteredArticles.take(5).toList();
+  List<Article> get latestArticles => _filteredArticles.skip(5).toList();
+
+  Article? _heroArticle;
+  Article? get heroArticle => _heroArticle;
+
+  List<Article> _guardianArticles = [];
+  List<Article> get guardianArticles => _guardianArticles;
 
   List<Article> _blogs = [];
   List<Article> get blogs => _blogs;
@@ -33,6 +42,8 @@ class NewsProvider extends ChangeNotifier {
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
+  Timer? _searchDebounce;
+
   static const List<String> categories = [
     'general',
     'business',
@@ -45,38 +56,48 @@ class NewsProvider extends ChangeNotifier {
 
   Future<void> loadHeadlines() async {
     _status = NewsStatus.loading;
-    _isSearchActive = false;
+    _errorMessage = '';
     notifyListeners();
 
     try {
-      _articles = await _repository.fetchByCategory(_selectedCategory);
+      final futures = await Future.wait([
+        _repository.fetchByCategory(_selectedCategory, onUpdated: (freshNews) {
+          _allArticles = freshNews;
+          _filterArticlesLocal();
+        }),
+        _repository.fetchGuardian(section: 'world', onUpdated: (freshGuardian) {
+          _guardianArticles = freshGuardian;
+          if (freshGuardian.isNotEmpty) {
+            _heroArticle = freshGuardian.first;
+          }
+          notifyListeners();
+        }),
+        _repository.fetchGuardian(section: 'opinion', onUpdated: (freshBlogs) {
+          _blogs = freshBlogs;
+          notifyListeners();
+        }),
+      ]);
+
+      final newsList = futures[0] as List<Article>;
+      final guardianList = futures[1] as List<Article>;
+      final blogsList = futures[2] as List<Article>;
+
+      _allArticles = newsList;
+      _guardianArticles = guardianList;
+      if (guardianList.isNotEmpty) {
+        _heroArticle = guardianList.first;
+      }
+      _blogs = blogsList.isNotEmpty ? blogsList : guardianList;
+
+      _filterArticlesLocal();
       _status = NewsStatus.success;
     } catch (e) {
       _errorMessage = e.toString();
-      _status = NewsStatus.error;
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> search(String query) async {
-    if (query.trim().isEmpty) {
-      _searchQuery = '';
-      loadHeadlines();
-      return;
-    }
-
-    _status = NewsStatus.loading;
-    _isSearchActive = true;
-    _searchQuery = query;
-    notifyListeners();
-
-    try {
-      _articles = await _repository.searchArticles(query);
-      _status = NewsStatus.success;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _status = NewsStatus.error;
+      if (_filteredArticles.isEmpty) {
+        _status = NewsStatus.error;
+      } else {
+        _status = NewsStatus.success;
+      }
     }
 
     notifyListeners();
@@ -85,14 +106,44 @@ class NewsProvider extends ChangeNotifier {
   Future<void> loadBlogs() async {
     _blogsStatus = NewsStatus.loading;
     notifyListeners();
-
     try {
-      _blogs = await _guardianService.fetchBlogs();
+      _blogs = await _repository.fetchGuardian(
+        section: 'opinion',
+        onUpdated: (freshBlogs) {
+          _blogs = freshBlogs;
+          notifyListeners();
+        },
+      );
       _blogsStatus = NewsStatus.success;
     } catch (e) {
       _blogsStatus = NewsStatus.error;
     }
+    notifyListeners();
+  }
 
+  void search(String query) {
+    _searchQuery = query;
+    _isSearchActive = query.trim().isNotEmpty;
+    notifyListeners();
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _filterArticlesLocal();
+    });
+  }
+
+  void _filterArticlesLocal() {
+    if (_searchQuery.trim().isEmpty) {
+      _filteredArticles = List.from(_allArticles);
+    } else {
+      final query = _searchQuery.toLowerCase();
+      _filteredArticles = _allArticles.where((a) {
+        final titleMatch = a.title.toLowerCase().contains(query);
+        final descMatch = a.description?.toLowerCase().contains(query) ?? false;
+        final srcMatch = a.sourceName?.toLowerCase().contains(query) ?? false;
+        return titleMatch || descMatch || srcMatch;
+      }).toList();
+    }
     notifyListeners();
   }
 
@@ -105,18 +156,18 @@ class NewsProvider extends ChangeNotifier {
   void clearSearch() {
     _isSearchActive = false;
     _searchQuery = '';
-    loadHeadlines();
+    _filterArticlesLocal();
   }
 
-  /// Revalidates and updates details for a single article
+  /// Loads details for a single article (AI summary + content)
   Future<Article> loadDetails(Article article) async {
     return await _repository.getArticleDetails(
       article,
       onUpdated: (updated) {
-        int index = _articles.indexWhere((a) => a.url == updated.url);
+        int index = _allArticles.indexWhere((a) => a.url == updated.url);
         if (index != -1) {
-          _articles[index] = updated;
-          notifyListeners();
+          _allArticles[index] = updated;
+          _filterArticlesLocal();
         }
         
         int blogIndex = _blogs.indexWhere((a) => a.url == updated.url);
@@ -124,7 +175,24 @@ class NewsProvider extends ChangeNotifier {
           _blogs[blogIndex] = updated;
           notifyListeners();
         }
+
+        if (_heroArticle?.url == updated.url) {
+          _heroArticle = updated;
+          notifyListeners();
+        }
+
+        int guardIndex = _guardianArticles.indexWhere((a) => a.url == updated.url);
+        if (guardIndex != -1) {
+          _guardianArticles[guardIndex] = updated;
+          notifyListeners();
+        }
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 }

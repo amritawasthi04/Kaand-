@@ -100,15 +100,7 @@ export async function GET(request: NextRequest) {
     const startIndex = (page - 1) * limit;
     const paginatedArticles = articles.slice(startIndex, startIndex + limit);
 
-    return successResponse({
-      articles: paginatedArticles,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      }
-    });
+    return successResponse(paginatedArticles);
   } catch (error: any) {
     console.error('Error in GET /api/guardian:', error);
     return errorResponse(error.message || 'Failed to fetch Guardian news', 'GUARDIAN_FETCH_ERROR');

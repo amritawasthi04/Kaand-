@@ -45,8 +45,49 @@ class HiveCache {
     return DateTime.now().difference(cachedAt) < ttl;
   }
 
+  Future<void> saveArticleList(String key, List<Article> list) async {
+    final box = _getBox();
+    final cacheData = {
+      'cachedAt': DateTime.now().toIso8601String(),
+      'list': list.map((a) => a.toMap()).toList(),
+    };
+    await box.put(key, cacheData);
+  }
+
+  List<Article>? getArticleList(String key) {
+    final box = _getBox();
+    final data = box.get(key);
+    if (data == null) return null;
+
+    final listRaw = data['list'] as List?;
+    if (listRaw == null) return null;
+
+    return listRaw.map((a) => Article.fromMap(a as Map)).toList();
+  }
+
+  bool isListFresh(String key, Duration ttl) {
+    final box = _getBox();
+    final data = box.get(key);
+    if (data == null) return false;
+
+    final cachedAtStr = data['cachedAt'] as String?;
+    if (cachedAtStr == null) return false;
+
+    final cachedAt = DateTime.tryParse(cachedAtStr);
+    if (cachedAt == null) return false;
+
+    return DateTime.now().difference(cachedAt) < ttl;
+  }
+
   Future<void> clearCache() async {
     final box = _getBox();
     await box.clear();
+  }
+
+  Future<void> clearAll() async {
+    final box = _getBox();
+    await box.clear();
+    final userBox = Hive.box(Constants.hiveUserBox);
+    await userBox.clear();
   }
 }

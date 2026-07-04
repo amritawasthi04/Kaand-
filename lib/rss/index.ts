@@ -28,14 +28,33 @@ export function titleSimilarity(t1: string, t2: string): number {
 }
 
 export async function fetchRssFeedForCategory(category: string): Promise<Article[]> {
-  const parser = new Parser();
-  const feeds = CATEGORY_FEEDS[category] || [];
+  const parser = new Parser({
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+    },
+    timeout: 10000,
+  });
+
+  const normalizedCategory = category.toLowerCase().trim();
+  const feedKey = normalizedCategory === 'nation' ? 'india' : normalizedCategory;
+  const feeds = CATEGORY_FEEDS[feedKey] || [];
+
+  console.log(`[RSS INFO] Requested Category: "${category}"`);
+  console.log(`[RSS INFO] Feed Key: "${feedKey}"`);
+  console.log(`[RSS INFO] Configured Feeds: ${feeds.length}`);
+  console.log(`[RSS INFO] Feed URLs:`, feeds);
+
   if (feeds.length === 0) return [];
 
   const promises = feeds.map(async (feedUrl) => {
+    console.log(`[RSS INFO] Fetching RSS: ${feedUrl}`);
     try {
       const feed = await parser.parseURL(feedUrl);
-      return feed.items.map((item) => {
+      console.log(`[RSS INFO] Feed Title: "${feed.title || 'Unknown'}" | Items Count: ${feed.items?.length || 0}`);
+      
+      const mapped = feed.items.map((item) => {
         const url = item.link || '';
         const rawTitle = item.title || 'No Title';
         
@@ -66,8 +85,11 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
           language: 'en'
         } as Article;
       });
-    } catch (err) {
-      console.error(`Error parsing RSS feed ${feedUrl}:`, err);
+
+      console.log(`[RSS INFO] Mapped ${mapped.length} articles from ${feedUrl}`);
+      return mapped;
+    } catch (err: any) {
+      console.error(`[RSS ERROR] RSS FAILED\nURL: ${feedUrl}\nReason: ${err?.message || err}\nStack: ${err?.stack || 'No Stack'}`);
       return [];
     }
   });
@@ -80,15 +102,25 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
     }
   }
 
+  console.log(`[RSS FILTER] Raw Articles: ${rawArticles.length}`);
+
   // Deduplicate and filter out items without URLs
   const deduped: Article[] = [];
   const seenUrls = new Set<string>();
+  let urlFilterCount = 0;
+  let dupeFilterCount = 0;
 
   for (const art of rawArticles) {
-    if (!art.url) continue;
+    if (!art.url) {
+      urlFilterCount++;
+      continue;
+    }
     
     // Check direct URL duplicate
-    if (seenUrls.has(art.url)) continue;
+    if (seenUrls.has(art.url)) {
+      dupeFilterCount++;
+      continue;
+    }
 
     // Check title similarity duplicate
     let isDupe = false;
@@ -102,10 +134,18 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
     if (!isDupe) {
       deduped.push(art);
       seenUrls.add(art.url);
+    } else {
+      dupeFilterCount++;
     }
   }
 
+  console.log(`[RSS FILTER] After URL Filter: ${rawArticles.length - urlFilterCount}`);
+  console.log(`[RSS FILTER] After Duplicate Filter: ${deduped.length}`);
+  console.log(`[RSS FILTER] Mapped: ${rawArticles.length} -> Deduplicated: ${dupeFilterCount} -> Final: ${deduped.length}`);
+
   // Sort by date: newest first
-  return deduped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  const sorted = deduped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  console.log(`[RSS INFO] Final returned article count: ${sorted.length}`);
+  return sorted;
 }
 export default Parser;

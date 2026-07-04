@@ -7,6 +7,7 @@ import { runExtractionEngine } from '../../../lib/extractor/engine';
 import { aiCleanup, generateGeminiSummary } from '../../../lib/ai/gemini';
 import { Article } from '../../../lib/models/article';
 import { md5 } from '../../../lib/utils/hash';
+import { validateUrlForSsrf } from '../../../lib/utils/ssrf';
 
 const QuerySchema = z.object({
   url: z.string().url(),
@@ -35,6 +36,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { url } = parsed.data;
+
+    // Validate SSRF Protection (block internal/loopback IP requests)
+    const isSafe = await validateUrlForSsrf(url);
+    if (!isSafe) {
+      return errorResponse('Access denied: Unsafe or private URL space requested', 'SSRF_BLOCKED', 400);
+    }
 
     // 1. Check if article details are already cached in Firestore
     const cached = await getArticleCache(url);

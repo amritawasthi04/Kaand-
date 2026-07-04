@@ -1,4 +1,8 @@
 export const CATEGORY_FEEDS: Record<string, string[]> = {
+  general: [
+    'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
+    'http://feeds.bbci.co.uk/news/rss.xml'
+  ],
   technology: [
     'https://techcrunch.com/feed/',
     'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-IN&gl=IN&ceid=IN:en'

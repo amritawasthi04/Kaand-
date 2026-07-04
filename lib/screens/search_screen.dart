@@ -17,6 +17,20 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      Provider.of<NewsProvider>(context, listen: false).clearSearch();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -29,10 +43,8 @@ class _SearchScreenState extends State<SearchScreen> {
             hintStyle: TextStyle(color: AppColors.mutedText),
           ),
           style: const TextStyle(color: AppColors.primaryText, fontSize: 18),
-          onSubmitted: (val) {
-            if (val.trim().isNotEmpty) {
-              Provider.of<NewsProvider>(context, listen: false).search(val);
-            }
+          onChanged: (val) {
+            Provider.of<NewsProvider>(context, listen: false).search(val);
           },
         ),
         actions: [

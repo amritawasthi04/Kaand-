@@ -1,6 +1,4 @@
 import * as cheerio from 'cheerio';
-import { JSDOM } from 'jsdom';
-import { Readability } from '@mozilla/readability';
 import { ExtractedArticle } from './types';
 
 export async function extractGeneric(
@@ -20,7 +18,8 @@ export async function extractGeneric(
         if (
           item['@type'] === 'NewsArticle' || 
           item['@type'] === 'Article' || 
-          item['@type'] === 'BlogPosting'
+          item['@type'] === 'BlogPosting' ||
+          item['@type'] === 'ReportageNewsArticle'
         ) {
           jsonld = item;
           break;
@@ -30,15 +29,16 @@ export async function extractGeneric(
         jsonld = parsed;
       }
     } catch {
-      // Ignore json syntax errors
+      // Ignore JSON parsing errors for malformed structures
     }
   });
 
-  // 2. OpenGraph & Twitter Metas
+  // 2. OpenGraph / Meta Tag Extraction
   const getMeta = (props: string[]) => {
     for (const p of props) {
       const v = $(`meta[property="${p}"]`).attr('content') || 
-                $(`meta[name="${p}"]`).attr('content');
+                $(`meta[name="${p}"]`).attr('content') ||
+                $(`meta[itemprop="${p}"]`).attr('content');
       if (v) return v.trim();
     }
     return '';
@@ -48,36 +48,15 @@ export async function extractGeneric(
   const ogDescription = getMeta(['og:description', 'description', 'twitter:description']);
   const ogImage = getMeta(['og:image', 'twitter:image', 'thumbnailUrl']);
   const ogAuthor = getMeta(['article:author', 'author', 'twitter:creator']);
-  const ogDate = getMeta(['article:published_time', 'publish-date', 'pubdate']);
+  const ogDate = getMeta(['article:published_time', 'publish-date', 'pubdate', 'og:pubdate']);
 
-  // 3. Mozilla Readability Engine over JSDOM
-  let readabilityTitle = '';
-  let readabilityExcerpt = '';
-  let readabilityByline = '';
-  let readabilityContent = '';
-
-  try {
-    const dom = new JSDOM(html, { url });
-    const reader = new Readability(dom.window.document);
-    const parsed = reader.parse();
-    if (parsed) {
-      readabilityTitle = parsed.title || '';
-      readabilityExcerpt = parsed.excerpt || '';
-      readabilityByline = parsed.byline || '';
-      readabilityContent = parsed.textContent || '';
-    }
-  } catch (err) {
-    console.error('Generic Readability execution failed:', err);
-  }
-
-  // 4. Resolve Metadata Priorities
-  const title = ogTitle || readabilityTitle || $('title').text() || 'No Title';
-  const description = ogDescription || readabilityExcerpt || '';
+  // Resolve basic metadata priorities
+  const title = ogTitle || jsonld.headline || $('h1').first().text().trim() || $('title').text().trim() || 'No Title';
+  const description = ogDescription || jsonld.description || '';
   const image = ogImage || 
                 (jsonld.image && (typeof jsonld.image === 'string' ? jsonld.image : jsonld.image.url)) || 
                 '';
   const author = ogAuthor || 
-                 readabilityByline || 
                  (jsonld.author && (typeof jsonld.author === 'string' ? jsonld.author : jsonld.author.name)) || 
                  'Staff';
   
@@ -87,36 +66,70 @@ export async function extractGeneric(
     publishedAt = new Date(rawDate).toISOString();
   } catch {}
 
-  // 5. Fallback Paragraphs Extraction if Readability Returned Short Content
-  let content = readabilityContent.trim();
-  if (content.split(/\s+/).filter(Boolean).length < 50) {
-    const paras: string[] = [];
+  // 3. Cheerio-based Content Extraction (High-Speed HTML Parser, No Native JSDOM)
+  let content = '';
+  
+  // List of standard article main selectors, ordered by priority
+  const articleContainers = [
+    'article',
+    '[itemprop="articleBody"]',
+    '.article-body',
+    '.story-body',
+    '.entry-content',
+    '.post-content',
+    '.article__body',
+    '.story-content',
+    'main',
+    '#main-content'
+  ];
+
+  for (const container of articleContainers) {
+    const el = $(container);
+    if (el.length > 0) {
+      const paragraphs: string[] = [];
+      el.find('p').each((_, pEl) => {
+        const txt = $(pEl).text().trim();
+        // Exclude short blocks, buttons, and advertisement placeholders
+        if (
+          txt.length > 30 && 
+          !txt.toLowerCase().includes('cookie') && 
+          !txt.toLowerCase().includes('subscribe') &&
+          !txt.toLowerCase().includes('sign up')
+        ) {
+          paragraphs.push(txt);
+        }
+      });
+      if (paragraphs.length > 0) {
+        content = paragraphs.join('\n\n');
+        break;
+      }
+    }
+  }
+
+  // Fallback: extract all p tags in the document if no container matched or content is too short
+  if (!content || content.split(/\s+/).filter(Boolean).length < 50) {
+    const paragraphs: string[] = [];
     $('p').each((_, el) => {
       const txt = $(el).text().trim();
       if (
-        txt.length > 35 && 
+        txt.length > 30 && 
         !txt.toLowerCase().includes('cookie') && 
-        !txt.toLowerCase().includes('subscribe')
+        !txt.toLowerCase().includes('subscribe') &&
+        !txt.toLowerCase().includes('sign up')
       ) {
-        paras.push(txt);
+        paragraphs.push(txt);
       }
     });
-    content = paras.join('\n\n');
+    content = paragraphs.join('\n\n');
   }
 
-  // Resolve source hostname
-  let source = 'External Web';
-  try {
-    source = new URL(url).hostname.replace(/^www\./, '');
-  } catch {}
-
   return {
-    title: title.trim(),
-    description: description.trim(),
-    content,
-    image: image.trim(),
-    author: author.trim(),
-    source,
+    title,
+    description,
+    content: content || description || 'Content unavailable.',
+    image,
+    author,
+    source: new URL(url).hostname.replace(/^www\./, ''),
     publishedAt,
     language: 'en'
   };

@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  // KAAND Brand Palette / Onboarding Specifics
+  static const Color onboardingBg = Color(0xFF070B18);
+  static const Color onboardingSurface = Color(0xFF111827);
+  static const Color onboardingPrimary = Color(0xFF8B2FC9);
+  static const Color onboardingSecondary = Color(0xFFA855F7);
+  static const Color onboardingAccent = Color(0xFF06B6D4);
+  static const Color onboardingTextPrimary = Color(0xFFFFFFFF);
+  static const Color onboardingTextSecondary = Color(0xFFB8B8C5);
+
   // Primary Palette
   static const Color background = Color(0xFF09090B); // Obsidian Black
   static const Color surface = Color(0xFF111218); // Graphite
