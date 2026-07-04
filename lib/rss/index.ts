@@ -4,6 +4,7 @@ import { md5 } from '../utils/hash';
 import { CATEGORY_FEEDS } from '../constants';
 import * as cheerio from 'cheerio';
 import { db } from '../firebase/config';
+import axios from 'axios';
 
 const normalizeSource = (raw: string): string => {
   const s = raw.toLowerCase();
@@ -52,18 +53,17 @@ const extractImage = async (url: string, content: string): Promise<string> => {
   }
   if (!url) return '';
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(url, {
-      signal: controller.signal,
+    const res = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-      }
+      },
+      timeout: 4000,
+      maxRedirects: 5,
     });
-    const html = await res.text();
-    clearTimeout(timer);
+    const html = res.data;
+    if (!html || typeof html !== 'string') return '';
 
     const $ = cheerio.load(html);
     const getMeta = (props: string[]) => {
