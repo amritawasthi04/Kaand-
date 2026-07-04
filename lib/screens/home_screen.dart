@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1230,23 +1232,43 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                 onTap: () => widget.onTap(art),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    image: art.urlToImage != null && art.urlToImage!.isNotEmpty
-                        ? DecorationImage(
-                            image: CachedNetworkImageProvider(art.urlToImage!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    gradient: art.urlToImage == null || art.urlToImage!.isEmpty
-                        ? const LinearGradient(
-                            colors: [AppColors.onboardingBg, Color(0xFF1D1B26)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                  ),
-                  child: Container(
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: art.urlToImage != null && art.urlToImage!.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: art.urlToImage!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: (context, url) => Shimmer.fromColors(
+                                  baseColor: AppColors.onboardingSurface,
+                                  highlightColor: Colors.white10,
+                                  child: Container(color: Colors.white),
+                                ),
+                                errorWidget: (c, u, e) => Container(
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [AppColors.onboardingBg, Color(0xFF1D1B26)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [AppColors.onboardingBg, Color(0xFF1D1B26)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      Positioned.fill(
+                        child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
                       gradient: LinearGradient(
@@ -1369,7 +1391,10 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                     ),
                   ),
                 ),
-              );
+              ],
+            ),
+          ),
+        );
             },
           ),
         ),
@@ -1554,6 +1579,11 @@ class TrendingCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: article.urlToImage!,
                             fit: BoxFit.cover,
+                            placeholder: (context, url) => Shimmer.fromColors(
+                              baseColor: AppColors.onboardingSurface,
+                              highlightColor: Colors.white10,
+                              child: Container(color: Colors.white),
+                            ),
                             errorWidget: (c, u, e) => const Icon(Icons.image, color: Colors.white24),
                           )
                         : const Center(
@@ -1651,6 +1681,11 @@ class HeadlineTile extends StatelessWidget {
                     ? CachedNetworkImage(
                         imageUrl: article.urlToImage!,
                         fit: BoxFit.cover,
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: AppColors.onboardingSurface,
+                          highlightColor: Colors.white10,
+                          child: Container(color: Colors.white),
+                        ),
                         errorWidget: (c, u, e) => const Icon(Icons.image, color: Colors.white24),
                       )
                     : const Center(
