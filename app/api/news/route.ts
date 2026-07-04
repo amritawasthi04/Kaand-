@@ -8,11 +8,13 @@ import { fetchRssFeedForCategory } from '../../../lib/rss';
 import { Article } from '../../../lib/models/article';
 import { md5 } from '../../../lib/utils/hash';
 
+import { DEFAULT_LIMIT, MAX_LIMIT } from '../../../lib/constants';
+
 const QuerySchema = z.object({
   category: z.string().default('general'),
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
 });
 
 export async function OPTIONS() {

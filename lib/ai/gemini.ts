@@ -47,8 +47,9 @@ function getExtractiveSummary(content: string): string {
   
   const extracted = paragraphs.slice(0, 3).join('\n\n');
   const words = extracted.split(/\s+/);
-  if (words.length > 120) {
-    return words.slice(0, 120).join(' ') + '...';
+  const maxWords = parseInt(process.env.MAX_SUMMARY_WORDS || '', 10) || 120;
+  if (words.length > maxWords) {
+    return words.slice(0, maxWords).join(' ') + '...';
   }
   return extracted;
 }
@@ -72,7 +73,12 @@ export async function generateGeminiSummary(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: {
+        maxOutputTokens: parseInt(process.env.MAX_AI_TOKENS || '', 10) || 2048,
+      }
+    });
 
     const prompt = `
     You are an expert news editor. Summarize the following news article.
@@ -120,8 +126,9 @@ export async function generateGeminiSummary(
       return { summary, readTime, category, tags };
     } catch (parseError) {
       console.warn('Failed to parse Gemini response JSON, falling back:', parseError);
+      const fallbackChars = parseInt(process.env.MAX_SUMMARY_CHARS || '', 10) || 300;
       return {
-        summary: `${textResponse.slice(0, 300)}...`,
+        summary: `${textResponse.slice(0, fallbackChars)}...`,
         readTime,
         category: 'general',
         tags: [],

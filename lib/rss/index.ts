@@ -1,10 +1,14 @@
 import Parser from 'rss-parser';
 import { Article } from '../models/article';
 import { md5 } from '../utils/hash';
-import { CATEGORY_FEEDS } from '../constants';
+import { CATEGORY_FEEDS, LOG_VERBOSE } from '../constants';
 import * as cheerio from 'cheerio';
 import { db } from '../firebase/config';
 import axios from 'axios';
+
+const logInfo = (...args: any[]) => {
+  if (LOG_VERBOSE) console.log(...args);
+};
 
 const normalizeSource = (raw: string): string => {
   const s = raw.toLowerCase();
@@ -59,7 +63,7 @@ const extractImage = async (url: string, content: string): Promise<string> => {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },
-      timeout: 4000,
+      timeout: parseInt(process.env.SCRAPER_TIMEOUT_MS || '', 10) || 4000,
       maxRedirects: 5,
     });
     const html = res.data;
@@ -178,31 +182,36 @@ export function titleSimilarity(t1: string, t2: string): number {
 }
 
 export async function fetchRssFeedForCategory(category: string): Promise<Article[]> {
+  const rssTimeout = parseInt(process.env.RSS_TIMEOUT_MS || '', 10) || 10000;
+  const maxConcurrentRss = parseInt(process.env.MAX_CONCURRENT_RSS || '', 10) || 10;
+  const maxConcurrentScrape = parseInt(process.env.MAX_CONCURRENT_SCRAPE || '', 10) || 5;
+
   const parser = new Parser({
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     },
-    timeout: 10000,
+    timeout: rssTimeout,
   });
 
   const normalizedCategory = category.toLowerCase().trim();
   const feedKey = normalizedCategory === 'nation' ? 'india' : normalizedCategory;
   const feeds = CATEGORY_FEEDS[feedKey] || [];
 
-  console.log(`[RSS INFO] Requested Category: "${category}"`);
-  console.log(`[RSS INFO] Feed Key: "${feedKey}"`);
-  console.log(`[RSS INFO] Configured Feeds: ${feeds.length}`);
-  console.log(`[RSS INFO] Feed URLs:`, feeds);
+  logInfo(`[RSS INFO] Requested Category: "${category}"`);
+  logInfo(`[RSS INFO] Feed Key: "${feedKey}"`);
+  logInfo(`[RSS INFO] Configured Feeds: ${feeds.length}`);
+  logInfo(`[RSS INFO] Feed URLs:`, feeds);
 
   if (feeds.length === 0) return [];
 
-  const promises = feeds.map(async (feedUrl) => {
-    console.log(`[RSS INFO] Fetching RSS: ${feedUrl}`);
+  // Create tasks for each feedUrl to process sequentially within concurrency pool limit
+  const feedTasks = feeds.map((feedUrl) => async () => {
+    logInfo(`[RSS INFO] Fetching RSS: ${feedUrl}`);
     try {
       const feed = await parser.parseURL(feedUrl);
-      console.log(`[RSS INFO] Feed Title: "${feed.title || 'Unknown'}" | Items Count: ${feed.items?.length || 0}`);
+      logInfo(`[RSS INFO] Feed Title: "${feed.title || 'Unknown'}" | Items Count: ${feed.items?.length || 0}`);
       
       const mapped = feed.items.map((item) => {
         const url = item.link || '';
@@ -238,7 +247,7 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
         } as Article;
       });
 
-      console.log(`[RSS INFO] Mapped ${mapped.length} articles from ${feedUrl}`);
+      logInfo(`[RSS INFO] Mapped ${mapped.length} articles from ${feedUrl}`);
       return mapped;
     } catch (err: any) {
       console.error(`[RSS ERROR] RSS FAILED\nURL: ${feedUrl}\nReason: ${err?.message || err}\nStack: ${err?.stack || 'No Stack'}`);
@@ -246,7 +255,14 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
     }
   });
 
-  const results = await Promise.allSettled(promises);
+  // Concurrency pooled execution for RSS feed fetching
+  const results: PromiseSettledResult<Article[]>[] = [];
+  for (let i = 0; i < feedTasks.length; i += maxConcurrentRss) {
+    const batch = feedTasks.slice(i, i + maxConcurrentRss).map(fn => fn());
+    const batchResults = await Promise.allSettled(batch);
+    results.push(...batchResults);
+  }
+
   const rawArticles: Article[] = [];
   for (const res of results) {
     if (res.status === 'fulfilled') {
@@ -254,7 +270,7 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
     }
   }
 
-  console.log(`[RSS FILTER] Raw Articles: ${rawArticles.length}`);
+  logInfo(`[RSS FILTER] Raw Articles: ${rawArticles.length}`);
 
   // Deduplicate and filter out items without URLs
   const deduped: Article[] = [];
@@ -291,14 +307,14 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
     }
   }
 
-  console.log(`[RSS FILTER] After URL Filter: ${rawArticles.length - urlFilterCount}`);
-  console.log(`[RSS FILTER] After Duplicate Filter: ${deduped.length}`);
-  console.log(`[RSS FILTER] Mapped: ${rawArticles.length} -> Deduplicated: ${dupeFilterCount} -> Final: ${deduped.length}`);
+  logInfo(`[RSS FILTER] After URL Filter: ${rawArticles.length - urlFilterCount}`);
+  logInfo(`[RSS FILTER] After Duplicate Filter: ${deduped.length}`);
+  logInfo(`[RSS FILTER] Mapped: ${rawArticles.length} -> Deduplicated: ${dupeFilterCount} -> Final: ${deduped.length}`);
 
   // Single-Round-Trip Firestore Caching checking step
   if (db && deduped.length > 0) {
     try {
-      console.log(`[RSS CACHE] Checking Firestore cache for ${deduped.length} articles.`);
+      logInfo(`[RSS CACHE] Checking Firestore cache for ${deduped.length} articles.`);
       const docRefs = deduped.map(art => db.collection('article_cache').doc(art.id));
       const snapshots = await db.getAll(...docRefs);
       const cachedImages = new Map<string, string>();
@@ -315,7 +331,7 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
           art.image = cachedImages.get(art.id)!;
         }
       }
-      console.log(`[RSS CACHE] Found ${cachedImages.size} hits from Firestore cache.`);
+      logInfo(`[RSS CACHE] Found ${cachedImages.size} hits from Firestore cache.`);
     } catch (cacheErr) {
       console.error('[RSS ERROR] Failed to fetch batch article cache:', cacheErr);
     }
@@ -323,9 +339,8 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
 
   // Find articles that still need image scraping
   const needsScrape = deduped.filter(art => !art.image);
-  console.log(`[RSS SCRAPE] ${needsScrape.length} articles need image scraping.`);
+  logInfo(`[RSS SCRAPE] ${needsScrape.length} articles need image scraping.`);
 
-  const concurrency = 5;
   const scrapePromises = needsScrape.map(art => async () => {
     const scrapedImage = await extractImage(art.url, art.description || '');
     if (scrapedImage) {
@@ -341,14 +356,14 @@ export async function fetchRssFeedForCategory(category: string): Promise<Article
   });
 
   // Run image scraping with concurrency pooling
-  for (let i = 0; i < scrapePromises.length; i += concurrency) {
-    const batch = scrapePromises.slice(i, i + concurrency).map(fn => fn());
+  for (let i = 0; i < scrapePromises.length; i += maxConcurrentScrape) {
+    const batch = scrapePromises.slice(i, i + maxConcurrentScrape).map(fn => fn());
     await Promise.allSettled(batch);
   }
 
   // Sort by date: newest first
   const sorted = deduped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  console.log(`[RSS INFO] Final returned article count: ${sorted.length}`);
+  logInfo(`[RSS INFO] Final returned article count: ${sorted.length}`);
   return sorted;
 }
 export default Parser;

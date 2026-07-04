@@ -1,10 +1,10 @@
 import { db } from './config';
 import { Article } from '../models/article';
-import { TTL_FEED, TTL_ARTICLE } from '../constants';
+import { TTL_FEED, TTL_ARTICLE, DISABLE_CACHE } from '../constants';
 import { md5 } from '../utils/hash';
 
 export async function getFeedCache(category: string): Promise<Article[] | null> {
-  if (!db) return null;
+  if (!db || DISABLE_CACHE) return null;
   try {
     const doc = await db.collection('feed_cache').doc(category).get();
     if (!doc.exists) return null;
@@ -25,7 +25,7 @@ export async function getFeedCache(category: string): Promise<Article[] | null> 
 }
 
 export async function setFeedCache(category: string, articles: Article[]): Promise<void> {
-  if (!db) return;
+  if (!db || DISABLE_CACHE) return;
   try {
     const now = Date.now();
     await db.collection('feed_cache').doc(category).set({
@@ -40,7 +40,7 @@ export async function setFeedCache(category: string, articles: Article[]): Promi
 }
 
 export async function getArticleCache(url: string): Promise<Article | null> {
-  if (!db) return null;
+  if (!db || DISABLE_CACHE) return null;
   try {
     const docId = md5(url);
     const doc = await db.collection('article_cache').doc(docId).get();
@@ -62,7 +62,7 @@ export async function getArticleCache(url: string): Promise<Article | null> {
 }
 
 export async function setArticleCache(url: string, article: Article): Promise<void> {
-  if (!db) return;
+  if (!db || DISABLE_CACHE) return;
   try {
     const docId = md5(url);
     const now = Date.now();
@@ -78,7 +78,7 @@ export async function setArticleCache(url: string, article: Article): Promise<vo
 }
 
 export async function getGuardianCache(key: string): Promise<Article[] | null> {
-  if (!db) return null;
+  if (!db || DISABLE_CACHE) return null;
   try {
     const doc = await db.collection('guardian_cache').doc(key).get();
     if (!doc.exists) return null;
@@ -99,7 +99,7 @@ export async function getGuardianCache(key: string): Promise<Article[] | null> {
 }
 
 export async function setGuardianCache(key: string, articles: Article[]): Promise<void> {
-  if (!db) return;
+  if (!db || DISABLE_CACHE) return;
   try {
     const now = Date.now();
     await db.collection('guardian_cache').doc(key).set({

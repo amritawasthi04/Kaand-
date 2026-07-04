@@ -24,7 +24,7 @@ export async function runExtractionEngine(url: string): Promise<EngineOutput> {
   
   const response = await axios.get(url, { 
     headers, 
-    timeout: 8000,
+    timeout: parseInt(process.env.SCRAPER_TIMEOUT_MS || '', 10) || 8000,
     maxRedirects: 5,
   });
 

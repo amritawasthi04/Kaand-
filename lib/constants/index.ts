@@ -37,8 +37,22 @@ export const CATEGORY_FEEDS: Record<string, string[]> = {
 };
 
 // Caching parameters (in milliseconds)
-export const TTL_FEED = 15 * 60 * 1000;      // 15 Minutes
-export const TTL_ARTICLE = 24 * 60 * 60 * 1000; // 24 Hours
+export const TTL_FEED = process.env.FEED_CACHE_TTL 
+  ? parseInt(process.env.FEED_CACHE_TTL, 10) * 1000 
+  : 15 * 60 * 1000;      // 15 Minutes
 
-export const DEFAULT_LIMIT = 20;
-export const MAX_LIMIT = 50;
+export const TTL_ARTICLE = process.env.ARTICLE_CACHE_TTL 
+  ? parseInt(process.env.ARTICLE_CACHE_TTL, 10) * 1000 
+  : 24 * 60 * 60 * 1000; // 24 Hours
+
+export const DEFAULT_LIMIT = process.env.DEFAULT_PAGE_SIZE
+  ? parseInt(process.env.DEFAULT_PAGE_SIZE, 10)
+  : 20;
+
+export const MAX_LIMIT = process.env.MAX_PAGE_SIZE
+  ? parseInt(process.env.MAX_PAGE_SIZE, 10)
+  : 500;
+
+export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';
+
+export const LOG_VERBOSE = process.env.LOG_VERBOSE === 'true' || process.env.NODE_ENV === 'development';
