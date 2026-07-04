@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { category, search, page, limit } = parsed.data;
+    const refresh = url.searchParams.get('refresh') === 'true';
 
     let articles: Article[] = [];
 
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // 2. Try loading category news from Firestore Cache
-      const cached = await getFeedCache(category);
+      const cached = refresh ? null : await getFeedCache(category);
       if (cached) {
         articles = cached;
       } else {

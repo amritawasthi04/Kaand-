@@ -31,16 +31,23 @@ Future<void> main() async {
   // Test 2: News Endpoint (General/Default load)
   try {
     print('[TEST 2] GET /news (Default Category: general)');
-    final request = await client.getUrl(Uri.parse('$baseUrl/news?limit=3'));
+    final request = await client.getUrl(Uri.parse('$baseUrl/news?limit=3&refresh=true'));
     final response = await request.close();
     final body = await response.transform(utf8.decoder).join();
     final json = jsonDecode(body);
 
-    if (response.statusCode == 200 && json['success'] == true && json['data'] is List) {
-      final list = json['data'] as List;
+    if (response.statusCode == 200 && json['success'] == true && json['data'] is Map && json['data']['articles'] is List) {
+      final list = json['data']['articles'] as List;
       print('✅ News general feed query passed! Returned ${list.length} articles.');
       if (list.isNotEmpty) {
         print('   First Article Headline: "${list[0]['title']}" from "${list[0]['source']}"');
+        print('   First Article Image: "${list[0]['image']}"');
+        final hasImage = list.any((art) => art['image'] != null && (art['image'] as String).isNotEmpty);
+        if (hasImage) {
+          print('   🎉 SUCCESS: Extracted images found in news feed!');
+        } else {
+          print('   ⚠️ WARNING: All article images are empty in this response.');
+        }
       }
     } else {
       print('❌ News general feed query failed. Status: ${response.statusCode}, Body: $body');
@@ -55,16 +62,23 @@ Future<void> main() async {
   // Test 3: News Endpoint (Nation Category mapping)
   try {
     print('[TEST 3] GET /news?category=NATION (Casing and Key Mapping)');
-    final request = await client.getUrl(Uri.parse('$baseUrl/news?category=NATION&limit=2'));
+    final request = await client.getUrl(Uri.parse('$baseUrl/news?category=NATION&limit=2&refresh=true'));
     final response = await request.close();
     final body = await response.transform(utf8.decoder).join();
     final json = jsonDecode(body);
 
-    if (response.statusCode == 200 && json['success'] == true && json['data'] is List) {
-      final list = json['data'] as List;
+    if (response.statusCode == 200 && json['success'] == true && json['data'] is Map && json['data']['articles'] is List) {
+      final list = json['data']['articles'] as List;
       print('✅ News nation category query passed! Returned ${list.length} articles.');
       if (list.isNotEmpty) {
         print('   First Article: "${list[0]['title']}"');
+        print('   First Article Image: "${list[0]['image']}"');
+        final hasImage = list.any((art) => art['image'] != null && (art['image'] as String).isNotEmpty);
+        if (hasImage) {
+          print('   🎉 SUCCESS: Extracted images found in nation feed!');
+        } else {
+          print('   ⚠️ WARNING: All article images are empty in this response.');
+        }
       }
     } else {
       print('❌ News nation query failed. Status: ${response.statusCode}, Body: $body');
