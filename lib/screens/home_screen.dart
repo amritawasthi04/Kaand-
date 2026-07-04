@@ -203,13 +203,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     Row(
                       children: [
-                        Text(
-                          userProvider.name,
-                          style: GoogleFonts.inter(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
+                        Flexible(
+                          child: Text(
+                            userProvider.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1340,23 +1344,30 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 8,
-                                  backgroundColor: AppColors.onboardingAccent.withOpacity(0.2),
-                                  child: const Icon(Icons.newspaper, size: 8, color: Colors.white),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  art.sourceName ?? 'News',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w500,
+                            Expanded(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 8,
+                                    backgroundColor: AppColors.onboardingAccent.withOpacity(0.2),
+                                    child: const Icon(Icons.newspaper, size: 8, color: Colors.white),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      art.sourceName ?? 'News',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1672,10 +1683,10 @@ class HeadlineTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
-                width: 80,
-                height: 80,
+                width: 96,
+                height: 96,
                 color: AppColors.onboardingSurface,
                 child: article.urlToImage != null && article.urlToImage!.isNotEmpty
                     ? CachedNetworkImage(
@@ -1686,14 +1697,34 @@ class HeadlineTile extends StatelessWidget {
                           highlightColor: Colors.white10,
                           child: Container(color: Colors.white),
                         ),
-                        errorWidget: (c, u, e) => const Icon(Icons.image, color: Colors.white24),
+                        errorWidget: (c, u, e) => Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.onboardingBg, Color(0xFF1D1B26)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.newspaper_rounded, color: Colors.white24, size: 28),
+                          ),
+                        ),
                       )
-                    : const Center(
-                        child: Icon(Icons.newspaper_rounded, color: Colors.white24, size: 24),
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.onboardingBg, Color(0xFF1D1B26)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.newspaper_rounded, color: Colors.white24, size: 28),
+                        ),
                       ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1710,20 +1741,20 @@ class HeadlineTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         article.sourceName ?? 'News',
                         style: GoogleFonts.inter(fontSize: 10, color: AppColors.onboardingTextSecondary),
                       ),
-                      const SizedBox(width: 6),
                       Text(
                         '• ${article.relativeTime} ago',
                         style: GoogleFonts.inter(fontSize: 10, color: AppColors.onboardingTextSecondary),
                       ),
-                      const SizedBox(width: 6),
                       const Icon(Icons.access_time_filled_rounded, size: 10, color: AppColors.onboardingTextSecondary),
-                      const SizedBox(width: 3),
                       Text(
                         '${article.readTime ?? 3} min read',
                         style: GoogleFonts.inter(fontSize: 10, color: AppColors.onboardingTextSecondary),
@@ -1733,30 +1764,34 @@ class HeadlineTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 6),
-            Column(
-              children: [
-                GestureDetector(
-                  onTap: onBookmarkToggle,
-                  child: Icon(
-                    isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
-                    size: 18,
-                    color: isBookmarked ? AppColors.onboardingAccent : AppColors.onboardingTextSecondary,
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 40,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: onBookmarkToggle,
+                    child: Icon(
+                      isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                      size: 18,
+                      color: isBookmarked ? AppColors.onboardingAccent : AppColors.onboardingTextSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Share.share('${article.title}\n\nRead more: ${article.url}');
-                  },
-                  child: const Icon(
-                    Icons.share_outlined,
-                    size: 18,
-                    color: AppColors.onboardingTextSecondary,
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () {
+                      Share.share('${article.title}\n\nRead more: ${article.url}');
+                    },
+                    child: const Icon(
+                      Icons.share_outlined,
+                      size: 18,
+                      color: AppColors.onboardingTextSecondary,
+                    ),
                   ),
-                ),
-              ],
-            )
+                ],
+              ),
+            ),
           ],
         ),
       ),
