@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'core/routes/app_routes.dart';
+import 'shared/widgets/component_showcase.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +16,7 @@ class KaandApp extends StatelessWidget {
       title: 'KAAND',
       themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkTheme,
-      initialRoute: AppRoutes.splash,
-      onGenerateRoute: AppRoutes.onGenerateRoute,
+      home: const ComponentShowcasePage(),
       debugShowCheckedModeBanner: false,
     );
   }
