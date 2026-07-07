@@ -16,6 +16,11 @@ public final class GeneratedPluginRegistrant {
   private static final String TAG = "GeneratedPluginRegistrant";
   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
     try {
+      flutterEngine.getPlugins().add(new com.lottiefiles.dotlottie_flutter.DotLottieFlutterPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin dotlottie_flutter, com.lottiefiles.dotlottie_flutter.DotLottieFlutterPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new com.github.dart_lang.jni.JniPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin jni, com.github.dart_lang.jni.JniPlugin", e);

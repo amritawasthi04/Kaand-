@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/constants/design_tokens.dart';
-import 'loading_indicator.dart';
+import '../../core/theme/app_colors.dart';
+
+import 'kaand_lottie.dart';
 
 class LottieLoader extends StatelessWidget {
   final String assetPath;
@@ -18,17 +18,11 @@ class LottieLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return KaandLottie(
+      assetPath: assetPath,
       width: size,
       height: size,
-      child: Lottie.asset(
-        assetPath,
-        repeat: repeat,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback to our custom canvas loading sweep if Lottie file is missing
-          return LoadingIndicator(size: size * 0.5);
-        },
-      ),
+      loop: repeat,
     );
   }
 }
