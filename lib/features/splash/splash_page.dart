@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hive/hive.dart';
 import '../../shared/widgets/kaand_lottie.dart';
+import '../home/main_shell.dart';
 import '../onboarding/onboarding_page.dart';
 
 class SplashPage extends StatefulWidget {
@@ -29,66 +31,66 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2800),
+      duration: const Duration(milliseconds: 5000),
     );
 
-    // 0-300ms: Fade in background (0.0 to 0.107 relative time)
+    // 0-300ms: Fade in background (0.0 to 0.06 relative time)
     _backgroundOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.107, curve: Curves.easeOut),
+        curve: const Interval(0.0, 0.06, curve: Curves.easeOut),
       ),
     );
 
-    // 300-1200ms: Logo Scale & Opacity (0.107 to 0.428 relative time)
+    // 300-1200ms: Logo Scale & Opacity (0.06 to 0.24 relative time)
     _logoScale = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.107, 0.428, curve: Curves.easeOutCubic),
+        curve: const Interval(0.06, 0.24, curve: Curves.easeOutCubic),
       ),
     );
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.107, 0.428, curve: Curves.easeOut),
+        curve: const Interval(0.06, 0.24, curve: Curves.easeOut),
       ),
     );
 
-    // 1200-1800ms: Ambient glow expands (0.428 to 0.643 relative time)
+    // 1200-1800ms: Ambient glow expands (0.24 to 0.36 relative time)
     _glowScale = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.428, 0.643, curve: Curves.easeOutBack),
+        curve: const Interval(0.24, 0.36, curve: Curves.easeOutBack),
       ),
     );
     _glowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.428, 0.643, curve: Curves.easeOut),
+        curve: const Interval(0.24, 0.36, curve: Curves.easeOut),
       ),
     );
 
-    // 1800-2300ms: Small floating particles appear (0.643 to 0.821 relative time)
+    // 1800-2300ms: Small floating particles appear (0.36 to 0.46 relative time)
     _particlesOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.643, 0.821, curve: Curves.easeOut),
+        curve: const Interval(0.36, 0.46, curve: Curves.easeOut),
       ),
     );
     
-    // Animate a subtle float translation for particles (from 1800ms to 2800ms)
+    // Animate a subtle float translation for particles (from 1800ms to 5000ms)
     _particlesTranslation = Tween<double>(begin: 10.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.643, 1.0, curve: Curves.easeOutCubic),
+        curve: const Interval(0.36, 1.0, curve: Curves.easeOutCubic),
       ),
     );
 
-    // 2300-2800ms: Loading animation plays (0.821 to 1.0 relative time)
+    // 2300-2800ms: Loading animation plays (0.46 to 0.56 relative time)
     _loadingOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.821, 1.0, curve: Curves.easeIn),
+        curve: const Interval(0.46, 0.56, curve: Curves.easeIn),
       ),
     );
 
@@ -104,9 +106,13 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   }
 
   void _navigateToWelcome() {
+    final box = Hive.box('settings');
+    final bool completedOnboarding = box.get('hasCompletedOnboarding', defaultValue: false);
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const OnboardingPage(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            completedOnboarding ? const MainShellPage() : const OnboardingPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,
