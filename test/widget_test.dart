@@ -1,23 +1,23 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-import 'package:newstler/main.dart';
-import 'package:newstler/providers/news_provider.dart';
-import 'package:newstler/providers/user_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:application/main.dart';
 
 void main() {
-  testWidgets('Newstler home screen smoke test', (WidgetTester tester) async {
-    // Build our app with the providers and trigger a frame.
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => UserProvider()),
-          ChangeNotifierProvider(create: (_) => NewsProvider()),
-        ],
-        child: const NewsApp(),
-      ),
-    );
+  setUp(() async {
+    final tempDir = await Directory.systemTemp.createTemp();
+    Hive.init(tempDir.path);
+    await Hive.openBox('settings');
+  });
 
-    // Verify that the app builds.
-    expect(find.byType(NewsApp), findsOneWidget);
+  tearDown(() async {
+    await Hive.close();
+  });
+
+  testWidgets('Splash Screen Smoke Test', (WidgetTester tester) async {
+    await tester.pumpWidget(const KaandApp());
+
+    expect(find.text('KAAND'), findsOneWidget);
+    expect(find.text('Stay Connected.\nStay Informed.'), findsOneWidget);
   });
 }
