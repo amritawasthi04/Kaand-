@@ -58,11 +58,15 @@ class PrimaryButton extends StatelessWidget {
                           Icon(icon, size: 20, color: Colors.white),
                           const SizedBox(width: DesignTokens.spaceXS),
                         ],
-                        Text(
-                          text,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            text,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -136,11 +140,15 @@ class SecondaryButton extends StatelessWidget {
                           Icon(icon, size: 20, color: AppColors.accent),
                           const SizedBox(width: DesignTokens.spaceXS),
                         ],
-                        Text(
-                          text,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            text,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -191,11 +199,15 @@ class GhostButton extends StatelessWidget {
               Icon(icon, size: 18, color: AppColors.textSecondary),
               const SizedBox(width: DesignTokens.spaceXS),
             ],
-            Text(
-              text,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                text,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

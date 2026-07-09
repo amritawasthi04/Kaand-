@@ -31,20 +31,22 @@ class _LoadingIndicatorState extends State<LoadingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _AILoadingPainter(
-              progress: _controller.value,
-              primaryColor: AppColors.primary,
-              accentColor: AppColors.accent,
-            ),
-          );
-        },
+    return RepaintBoundary(
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: _AILoadingPainter(
+                progress: _controller.value,
+                primaryColor: AppColors.primary,
+                accentColor: AppColors.accent,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

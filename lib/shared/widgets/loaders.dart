@@ -68,18 +68,18 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _opacityAnimation,
-      builder: (context, child) {
-        return Container(
+    return RepaintBoundary(
+      child: FadeTransition(
+        opacity: _opacityAnimation,
+        child: Container(
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: AppColors.textSecondary.withValues(alpha: _opacityAnimation.value),
+            color: AppColors.textSecondary,
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

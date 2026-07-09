@@ -12,6 +12,7 @@ class GlassCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final bool showGlow;
   final Color? glowColor;
+  final bool enableBlur;
 
   const GlassCard({
     super.key,
@@ -23,48 +24,62 @@ class GlassCard extends StatelessWidget {
     this.borderRadius,
     this.showGlow = false,
     this.glowColor,
+    this.enableBlur = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final resolvedRadius = borderRadius ?? BorderRadius.circular(DesignTokens.radiusM);
 
-    return Container(
-      margin: margin,
+    Widget cardContent = Container(
+      width: width,
+      height: height,
+      padding: padding ?? const EdgeInsets.all(DesignTokens.spaceM),
       decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: enableBlur ? 0.5 : 0.85),
         borderRadius: resolvedRadius,
-        boxShadow: showGlow
-            ? [
-                BoxShadow(
-                  color: glowColor ?? AppColors.primaryGlow,
-                  blurRadius: DesignTokens.blurGlow,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: 1.0,
+        ),
       ),
-      child: ClipRRect(
+      child: child,
+    );
+
+    if (enableBlur) {
+      cardContent = ClipRRect(
         borderRadius: resolvedRadius,
         child: BackdropFilter(
           filter: ImageFilter.blur(
             sigmaX: DesignTokens.blurGlass,
             sigmaY: DesignTokens.blurGlass,
           ),
-          child: Container(
-            width: width,
-            height: height,
-            padding: padding ?? const EdgeInsets.all(DesignTokens.spaceM),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.5),
-              borderRadius: resolvedRadius,
-              border: Border.all(
-                color: AppColors.glassBorder,
-                width: 1.0,
-              ),
-            ),
-            child: child,
-          ),
+          child: cardContent,
         ),
+      );
+    } else {
+      cardContent = ClipRRect(
+        borderRadius: resolvedRadius,
+        child: cardContent,
+      );
+    }
+
+    return RepaintBoundary(
+      child: Container(
+        margin: margin,
+        decoration: BoxDecoration(
+          borderRadius: resolvedRadius,
+          boxShadow: showGlow
+              ? [
+                  BoxShadow(
+                    color: glowColor ?? AppColors.primaryGlow,
+                    blurRadius: DesignTokens.blurGlow,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+        child: cardContent,
       ),
     );
   }

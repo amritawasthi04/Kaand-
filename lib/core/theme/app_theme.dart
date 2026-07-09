@@ -6,8 +6,11 @@ import '../constants/design_tokens.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get darkTheme {
+  static final ThemeData darkTheme = _buildDarkTheme();
+
+  static ThemeData _buildDarkTheme() {
     final baseTheme = ThemeData.dark(useMaterial3: true);
+    final baseTextTheme = GoogleFonts.interTextTheme(baseTheme.textTheme);
 
     return baseTheme.copyWith(
       scaffoldBackgroundColor: AppColors.background,
@@ -21,36 +24,36 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         error: AppColors.error,
       ),
-      textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme).copyWith(
-        displayLarge: GoogleFonts.inter(
+      textTheme: baseTextTheme.copyWith(
+        displayLarge: baseTextTheme.displayLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
           fontSize: 32,
           letterSpacing: -0.5,
         ),
-        titleLarge: GoogleFonts.inter(
+        titleLarge: baseTextTheme.titleLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
           fontSize: 20,
           letterSpacing: 0.15,
         ),
-        titleMedium: GoogleFonts.inter(
+        titleMedium: baseTextTheme.titleMedium?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w500,
           fontSize: 16,
           letterSpacing: 0.15,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: baseTextTheme.bodyLarge?.copyWith(
           color: AppColors.textPrimary,
           fontSize: 16,
           height: 1.5,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: baseTextTheme.bodyMedium?.copyWith(
           color: AppColors.textSecondary,
           fontSize: 14,
           height: 1.45,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: baseTextTheme.labelLarge?.copyWith(
           color: AppColors.accent,
           fontWeight: FontWeight.bold,
           fontSize: 12,

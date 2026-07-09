@@ -57,19 +57,19 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
 
             const SectionHeader(title: 'Color Palette'),
             const SizedBox(height: DesignTokens.spaceS),
-            Wrap(
+            const Wrap(
               spacing: DesignTokens.spaceS,
               runSpacing: DesignTokens.spaceS,
               children: [
-                _buildColorChip('Background', AppColors.background),
-                _buildColorChip('Surface', AppColors.surface),
-                _buildColorChip('Primary', AppColors.primary),
-                _buildColorChip('Secondary', AppColors.secondary),
-                _buildColorChip('Accent', AppColors.accent),
-                _buildColorChip('Text Primary', AppColors.textPrimary),
-                _buildColorChip('Text Sec', AppColors.textSecondary),
-                _buildColorChip('Success', AppColors.success),
-                _buildColorChip('Error', AppColors.error),
+                ColorChip(name: 'Background', color: AppColors.background),
+                ColorChip(name: 'Surface', color: AppColors.surface),
+                ColorChip(name: 'Primary', color: AppColors.primary),
+                ColorChip(name: 'Secondary', color: AppColors.secondary),
+                ColorChip(name: 'Accent', color: AppColors.accent),
+                ColorChip(name: 'Text Primary', color: AppColors.textPrimary),
+                ColorChip(name: 'Text Sec', color: AppColors.textSecondary),
+                ColorChip(name: 'Success', color: AppColors.success),
+                ColorChip(name: 'Error', color: AppColors.error),
               ],
             ),
             const SizedBox(height: DesignTokens.spaceXL),
@@ -250,6 +250,7 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
             const SectionHeader(title: 'Feedback States'),
             const SizedBox(height: DesignTokens.spaceS),
             const GlassCard(
+              enableBlur: false,
               child: EmptyState(
                 title: 'Nothing Saved',
                 description: 'Your bookmarks collection will show up here.',
@@ -258,6 +259,7 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
             ),
             const SizedBox(height: DesignTokens.spaceM),
             GlassCard(
+              enableBlur: false,
               child: ErrorState(
                 title: 'Connection Dropped',
                 message: 'Verify network settings and try fetching headlines again.',
@@ -286,8 +288,20 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
       ),
     );
   }
+}
 
-  Widget _buildColorChip(String name, Color color) {
+class ColorChip extends StatelessWidget {
+  final String name;
+  final Color color;
+
+  const ColorChip({
+    super.key,
+    required this.name,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: DesignTokens.spaceM,
