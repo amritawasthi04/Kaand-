@@ -32,7 +32,7 @@ class ArticleCard extends StatelessWidget {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge,
       child: InkWell(
         onTap: onTap,
         splashColor: AppColors.primaryAccent.withOpacity(0.1),

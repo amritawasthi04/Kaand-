@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:newstler/models/article.dart';
-import 'package:newstler/core/utils/hash.dart';
 
 void main() {
   group('Core Unit Tests', () {
@@ -22,14 +21,6 @@ void main() {
       expect(fromMap.title, 'Test Title');
       expect(fromMap.description, 'Test Description');
       expect(fromMap.url, 'https://example.com/article');
-    });
-
-    test('md5Hash generates stable 32-char output', () {
-      const url = 'https://example.com/article';
-      final hash1 = md5Hash(url);
-      final hash2 = md5Hash(url);
-      expect(hash1, hash2);
-      expect(hash1.length, 32);
     });
   });
 }

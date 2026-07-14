@@ -10,7 +10,7 @@ class NewsRepository {
   Future<List<Article>> fetchByCategory(String category, {void Function(List<Article>)? onUpdated}) async {
     final cacheKey = 'category_$category';
     final cached = _hiveCache.getArticleList(cacheKey);
-    final isFresh = _hiveCache.isListFresh(cacheKey, Constants.headlinesTtl);
+    final isFresh = _hiveCache.isFresh(cacheKey, Constants.headlinesTtl);
 
     if (cached != null) {
       if (!isFresh && onUpdated != null) {
@@ -27,7 +27,7 @@ class NewsRepository {
   Future<List<Article>> fetchGuardian({String? section, void Function(List<Article>)? onUpdated}) async {
     final cacheKey = 'guardian_${section ?? 'world'}';
     final cached = _hiveCache.getArticleList(cacheKey);
-    final isFresh = _hiveCache.isListFresh(cacheKey, Constants.headlinesTtl);
+    final isFresh = _hiveCache.isFresh(cacheKey, Constants.headlinesTtl);
 
     if (cached != null) {
       if (!isFresh && onUpdated != null) {

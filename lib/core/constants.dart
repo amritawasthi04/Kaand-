@@ -1,27 +1,12 @@
-import 'dart:io';
-
 class Constants {
-  static const String baseUrl = 'https://kaand-mauve.vercel.app/api';
-  static const String workerBaseUrl = 'https://kaand.2024baiml013.workers.dev';
   static const String guardianBaseUrl = 'https://content.guardianapis.com';
   static const String guardianApiKey = 'cd760a37-962a-475d-a08f-75738e87a663';
 
-  // Configurable Gemini API Key for client-side summarization
-  static const String geminiApiKeyString = 'YOUR_GEMINI_API_KEY_HERE';
-
-  static String get geminiApiKey {
-    final envKey = Platform.environment['GEMINI_API_KEY'];
-    if (envKey != null && envKey.isNotEmpty) {
-      return envKey;
-    }
-    return geminiApiKeyString;
-  }
 
   static const String hiveNewsBox = 'news_cache_box_v2';
   static const String hiveUserBox = 'user_profile_box_v2';
 
   static const Duration headlinesTtl = Duration(minutes: 30);
-  static const Duration detailTtl = Duration(hours: 24);
 
   static const Map<String, List<String>> categoryFeeds = {
     'general': [

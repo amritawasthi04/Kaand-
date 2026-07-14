@@ -12,8 +12,10 @@ class NewsProvider extends ChangeNotifier {
   List<Article> _filteredArticles = [];
   List<Article> get articles => _filteredArticles;
 
-  List<Article> get trendingArticles => _filteredArticles.take(5).toList();
-  List<Article> get latestArticles => _filteredArticles.skip(5).toList();
+  List<Article> _trendingArticles = [];
+  List<Article> get trendingArticles => _trendingArticles;
+  List<Article> _latestArticles = [];
+  List<Article> get latestArticles => _latestArticles;
 
   Article? _heroArticle;
   Article? get heroArticle => _heroArticle;
@@ -78,9 +80,9 @@ class NewsProvider extends ChangeNotifier {
         }),
       ]);
 
-      final newsList = futures[0] as List<Article>;
-      final guardianList = futures[1] as List<Article>;
-      final blogsList = futures[2] as List<Article>;
+      final newsList = futures[0];
+      final guardianList = futures[1];
+      final blogsList = futures[2];
 
       _allArticles = newsList;
       _guardianArticles = guardianList;
@@ -93,11 +95,7 @@ class NewsProvider extends ChangeNotifier {
       _status = NewsStatus.success;
     } catch (e) {
       _errorMessage = e.toString();
-      if (_filteredArticles.isEmpty) {
-        _status = NewsStatus.error;
-      } else {
-        _status = NewsStatus.success;
-      }
+      _status = _filteredArticles.isEmpty ? NewsStatus.error : NewsStatus.success;
     }
 
     notifyListeners();
@@ -144,6 +142,10 @@ class NewsProvider extends ChangeNotifier {
         return titleMatch || descMatch || srcMatch;
       }).toList();
     }
+    _trendingArticles = _filteredArticles.take(5).toList();
+    _latestArticles = _filteredArticles.length > 5
+        ? _filteredArticles.sublist(5)
+        : [];
     notifyListeners();
   }
 

@@ -1,7 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,7 +14,6 @@ import '../widgets/shimmer_card.dart';
 import 'blogs_screen.dart';
 import 'detail_screen.dart';
 import 'search_screen.dart';
-import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -538,8 +535,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   // --- TAB 2: AI SUMMARY TAB ---
   Widget _buildAITab(BuildContext context, NewsProvider newsProvider) {
-    // Collect some sample headings to parse into AI Bullet briefs
-    final titles = newsProvider.articles.take(5).map((e) => e.title).toList();
     
     return SafeArea(
       child: Padding(
@@ -906,7 +901,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           children: [
             _buildNavItem(0, Icons.home_rounded, 'Home'),
             _buildNavItem(1, Icons.grid_view_rounded, 'Categories'),
-            _buildSpecialFABItem(2),
             _buildNavItem(3, Icons.bookmark_rounded, 'Bookmarks'),
             _buildNavItem(4, Icons.person_rounded, 'Profile'),
           ],
@@ -922,6 +916,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         setState(() {
           _currentTab = index;
         });
+        // Pause globe animation when not on home tab
+        if (index == 0) {
+          if (!_rotationController.isAnimating) _rotationController.repeat();
+        } else {
+          _rotationController.stop();
+        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -945,40 +945,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildSpecialFABItem(int index) {
-    final isActive = _currentTab == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentTab = index;
-        });
-      },
-      child: Container(
-        width: 46,
-        height: 46,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [AppColors.onboardingPrimary, AppColors.onboardingSecondary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.onboardingPrimary.withOpacity(0.35),
-              blurRadius: 10,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Icon(
-          Icons.auto_awesome_rounded,
-          color: isActive ? Colors.white : Colors.white.withOpacity(0.85),
-          size: 20,
-        ),
-      ),
-    );
-  }
 
   // --- DRAWER SIDE BAR ---
   Widget _buildDrawer(BuildContext context, UserProvider userProvider) {
@@ -1845,7 +1811,8 @@ class HeaderGlobePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant HeaderGlobePainter oldDelegate) => true;
+  bool shouldRepaint(covariant HeaderGlobePainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
 }
 
 class GlassCard extends StatelessWidget {
@@ -1866,21 +1833,18 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(
-              color: borderColor,
-              width: 1.0,
-            ),
-          ),
-          child: child,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: borderColor,
+          width: 1.0,
         ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: child,
       ),
     );
   }

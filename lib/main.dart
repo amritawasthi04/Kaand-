@@ -38,14 +38,17 @@ class NewsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-
-    return MaterialApp(
-      title: 'Newstler',
-      debugShowCheckedModeBanner: false,
-      theme: _buildTheme(),
-      themeMode: ThemeMode.dark,
-      home: userProvider.isOnboarded ? const HomeScreen() : const OnboardingScreen(),
+    return Selector<UserProvider, bool>(
+      selector: (_, provider) => provider.isOnboarded,
+      builder: (context, isOnboarded, child) {
+        return MaterialApp(
+          title: 'Newstler',
+          debugShowCheckedModeBanner: false,
+          theme: _buildTheme(),
+          themeMode: ThemeMode.dark,
+          home: isOnboarded ? const HomeScreen() : const OnboardingScreen(),
+        );
+      },
     );
   }
 

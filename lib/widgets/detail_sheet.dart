@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/article.dart';
 import '../providers/news_provider.dart';
 import '../theme/app_colors.dart';
@@ -163,50 +162,7 @@ class _DetailSheetState extends State<DetailSheet> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
-                  // AI Summary Card
-                  if (_currentArticle.summary != null && _currentArticle.summary!.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 24),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.onboardingSurface.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.onboardingAccent.withOpacity(0.2),
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.auto_awesome_rounded, color: AppColors.onboardingAccent, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                'AI SUMMARY',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.onboardingAccent,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _currentArticle.summary!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.primaryText,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
                   
                   // Article Content
                   if (_isLoading && (_currentArticle.content == null || _currentArticle.content!.isEmpty))

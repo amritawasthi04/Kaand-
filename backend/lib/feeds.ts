@@ -1,4 +1,4 @@
-export const CATEGORY_FEEDS: Record<string, string[]> = {
+export const categoryFeeds: Record<string, string[]> = {
   general: [
     'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en',
     'http://feeds.bbci.co.uk/news/rss.xml'
@@ -36,23 +36,22 @@ export const CATEGORY_FEEDS: Record<string, string[]> = {
   ]
 };
 
-// Caching parameters (in milliseconds)
-export const TTL_FEED = process.env.FEED_CACHE_TTL 
-  ? parseInt(process.env.FEED_CACHE_TTL, 10) * 1000 
-  : 15 * 60 * 1000;      // 15 Minutes
-
-export const TTL_ARTICLE = process.env.ARTICLE_CACHE_TTL 
-  ? parseInt(process.env.ARTICLE_CACHE_TTL, 10) * 1000 
-  : 24 * 60 * 60 * 1000; // 24 Hours
-
-export const DEFAULT_LIMIT = process.env.DEFAULT_PAGE_SIZE
-  ? parseInt(process.env.DEFAULT_PAGE_SIZE, 10)
-  : 20;
-
-export const MAX_LIMIT = process.env.MAX_PAGE_SIZE
-  ? parseInt(process.env.MAX_PAGE_SIZE, 10)
-  : 500;
-
-export const DISABLE_CACHE = process.env.DISABLE_CACHE === 'true';
-
-export const LOG_VERBOSE = process.env.LOG_VERBOSE === 'true' || process.env.NODE_ENV === 'development';
+export function normalizeSource(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.includes('techcrunch')) return 'TechCrunch';
+  if (lower.includes('bbc')) return 'BBC';
+  if (lower.includes('theguardian')) return 'The Guardian';
+  if (lower.includes('thehindu')) return 'The Hindu';
+  if (lower.includes('indianexpress')) return 'Indian Express';
+  if (lower.includes('ndtv')) return 'NDTV';
+  if (lower.includes('espn')) return 'ESPN';
+  if (lower.includes('hindustantimes')) return 'Hindustan Times';
+  if (lower.includes('moneycontrol')) return 'Moneycontrol';
+  if (lower.includes('livemint')) return 'LiveMint';
+  if (lower.includes('economictimes')) return 'Economic Times';
+  if (lower.includes('zeenews')) return 'Zee News';
+  if (lower.includes('indiatoday')) return 'India Today';
+  if (lower.includes('republicworld')) return 'Republic World';
+  if (lower.includes('aninews')) return 'ANI';
+  return 'News';
+}

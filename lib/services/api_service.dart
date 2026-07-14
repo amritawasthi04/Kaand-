@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 import 'package:html/parser.dart' as html_parser;
@@ -8,8 +8,6 @@ import '../core/constants.dart';
 import '../models/article.dart';
 
 class ApiService {
-  int _min(int a, int b) => a < b ? a : b;
-  int _max(int a, int b) => a > b ? a : b;
 
   String _sanitizeXml(String xmlStr) {
     xmlStr = xmlStr.trim().replaceFirst(RegExp(r'^[^<]+'), '');
@@ -156,87 +154,6 @@ class ApiService {
       print('Failed to resolve Google News link client-side: $e');
     }
     return link;
-  }
-
-  Future<Map<String, dynamic>> _generateGeminiSummary(String content, String title) async {
-    final apiKey = Constants.geminiApiKey;
-    if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
-      print('[ApiService] Gemini API Key is missing or default. Returning basic details.');
-      return {
-        'summary': content.substring(0, _min(content.length, 300)) + '...',
-        'readTime': _max(1, (content.split(RegExp(r'\s+')).length / 200).ceil()),
-        'category': 'general',
-        'tags': <String>[],
-      };
-    }
-    
-    try {
-      final prompt = '''
-You are an AI assistant designed to summarize and categorize raw news article content.
-Given the article title and raw content below, perform two tasks:
-1. Summarize: Provide a 3-5 sentence overall summary, followed by a bulleted list of 3-5 key highlights. Use clean formatting.
-2. Categorize: Select the single most relevant category for the news from this list: [general, technology, business, sports, health, science, world, india, entertainment].
-3. Tagging: Provide 3-5 keywords or tags.
-
-Output your response strictly in the following JSON format:
-{
-  "summary": "overall summary paragraph\\n\\nKey Highlights:\\n• Highlight 1\\n• Highlight 2",
-  "category": "category_name",
-  "tags": ["tag1", "tag2", "tag3"]
-}
-
-Article Title: $title
-Article Content:
-$content
-''';
-
-      final uri = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey');
-      
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'contents': [
-            {
-              'parts': [{'text': prompt}]
-            }
-          ],
-          'generationConfig': {
-            'responseMimeType': 'application/json',
-          }
-        }),
-      ).timeout(const Duration(seconds: 15));
-      
-      if (response.statusCode == 200) {
-        final payload = json.decode(response.body);
-        final String? textResponse = payload['candidates']?[0]?['content']?['parts']?[0]?['text'];
-        if (textResponse != null && textResponse.trim().isNotEmpty) {
-          final cleaned = textResponse.trim();
-          final parsed = json.decode(cleaned) as Map<String, dynamic>;
-          
-          final wordCount = content.split(RegExp(r'\s+')).length;
-          final readTime = (wordCount / 200).ceil();
-          
-          return {
-            'summary': parsed['summary'] ?? '',
-            'readTime': readTime,
-            'category': parsed['category'] ?? 'general',
-            'tags': parsed['tags'] ?? <String>[],
-          };
-        }
-      }
-      throw Exception('Gemini API status code: ${response.statusCode}');
-    } catch (e) {
-      print('[ApiService] Error calling Gemini API: $e. Using fallback.');
-      final wordCount = content.split(RegExp(r'\s+')).length;
-      final readTime = (wordCount / 200).ceil();
-      return {
-        'summary': content.substring(0, _min(content.length, 300)) + '...',
-        'readTime': readTime,
-        'category': 'general',
-        'tags': <String>[],
-      };
-    }
   }
 
   Future<List<Article>> fetchNews({String? category, String? search, int page = 1, int limit = 20}) async {
@@ -463,24 +380,22 @@ $content
       final finalContent = rawContent.isNotEmpty
           ? rawContent
           : (description.isNotEmpty ? description : 'No content extracted.');
-          
-      // 5. Generate AI Summary via Gemini REST API
-      final Map<String, dynamic> geminiResult = await _generateGeminiSummary(finalContent, title);
-      
+
+      // 5. Compute read time from word count
+      final wordCount = finalContent.split(RegExp(r'\s+')).length;
+      final readTime = math.max(1, (wordCount / 200).ceil());
+
       return Article(
         title: title,
         description: description,
-        summary: geminiResult['summary'] as String?,
         urlToImage: image,
         url: targetUrl,
         author: author,
         sourceName: _normalizeSource(targetUrl),
         publishedAt: date,
         content: finalContent,
-        sectionName: geminiResult['category'] as String? ?? 'general',
-        readTime: geminiResult['readTime'] as int? ?? 1,
-        language: 'en',
-        tags: List<String>.from(geminiResult['tags'] ?? []),
+        sectionName: 'general',
+        readTime: readTime,
       );
     } catch (e) {
       print('[ApiService] fetchArticleDetails error: $e');
