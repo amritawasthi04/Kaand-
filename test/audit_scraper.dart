@@ -138,7 +138,8 @@ void main() async {
 
     final stopwatch = Stopwatch()..start();
     try {
-      final apiUrl = Uri.parse('https://kaand-mauve.vercel.app/api/article?url=${Uri.encodeComponent(articleUrl)}');
+      final baseUrl = Platform.environment['API_URL'] ?? 'http://localhost:3000/api';
+      final apiUrl = Uri.parse('$baseUrl/article?url=${Uri.encodeComponent(articleUrl)}');
       final apiResponse = await http.get(apiUrl).timeout(const Duration(seconds: 25));
       stopwatch.stop();
 

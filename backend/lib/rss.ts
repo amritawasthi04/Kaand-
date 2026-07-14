@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+import * as cheerio from 'cheerio';
 import { Article } from './types';
 import { categoryFeeds, normalizeSource } from './feeds';
 
@@ -6,10 +7,23 @@ const parser = new Parser({
   customFields: {
     item: [
       ['media:content', 'mediaContent'],
+      ['media:thumbnail', 'mediaThumbnail'],
       ['enclosure', 'enclosure']
     ]
   }
 });
+
+function cleanAndValidateRssImage(url: string): string {
+  if (!url || !url.startsWith('https://')) {
+    return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80';
+  }
+  const lower = url.toLowerCase();
+  const exclusions = ['favicon', 'logo', 'sprite', 'placeholder', 'avatar', 'tracker', 'pixel', 'icon', 'ad-', 'ads-'];
+  if (exclusions.some(exc => lower.includes(exc))) {
+    return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80';
+  }
+  return url;
+}
 
 // Calculate similarity between two titles using Jaccard index
 function getTitleSimilarity(t1: string, t2: string): number {
@@ -165,17 +179,35 @@ export async function fetchCategoryNews(category: string): Promise<Article[]> {
         }
 
         let imageUrl = '';
+        const itemMediaContent = (item as any).mediaContent;
+        const itemMediaThumbnail = (item as any).mediaThumbnail;
+
         if (item.enclosure && item.enclosure.url) {
           imageUrl = item.enclosure.url;
-        } else if (item.mediaContent && item.mediaContent.$ && item.mediaContent.$.url) {
-          imageUrl = item.mediaContent.$.url;
+        } else if (itemMediaContent && itemMediaContent.$ && itemMediaContent.$.url) {
+          imageUrl = itemMediaContent.$.url;
+        } else if (itemMediaThumbnail && itemMediaThumbnail.$ && itemMediaThumbnail.$.url) {
+          imageUrl = itemMediaThumbnail.$.url;
+        } else {
+          const textToParse = ((item as any).content || '') + ((item as any).description || '');
+          if (textToParse.includes('<img')) {
+            try {
+              const $img = cheerio.load(textToParse);
+              const src = $img('img').first().attr('src');
+              if (src) {
+                imageUrl = src;
+              }
+            } catch (_) {}
+          }
         }
+
+        const validImage = cleanAndValidateRssImage(imageUrl);
 
         allArticles.push({
           title,
           description: item.contentSnippet || item.summary || '',
           url: link,
-          image: imageUrl,
+          image: validImage,
           author: item.creator || 'Staff',
           source: source,
           publishedAt: item.pubDate || new Date().toISOString(),

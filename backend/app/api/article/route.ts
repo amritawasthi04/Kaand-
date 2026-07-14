@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractArticleDetails } from '@/lib/extractor';
 import { cache } from '@/lib/cache';
 import { ApiResponse, Article } from '@/lib/types';
+import { isPrivateUrl } from '@/lib/ssrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: false,
         message: 'Missing required query parameter: url',
+        data: null,
+        timestamp: new Date().toISOString()
+      }, { status: 400 });
+    }
+
+    if (isPrivateUrl(url)) {
+      return NextResponse.json({
+        success: false,
+        code: 'SSRF_BLOCKED',
+        message: 'Access to private or loopback addresses is blocked.',
         data: null,
         timestamp: new Date().toISOString()
       }, { status: 400 });

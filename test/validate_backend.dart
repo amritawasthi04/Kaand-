@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 Future<void> main() async {
-  final baseUrl = 'https://kaand-mauve.vercel.app/api';
+  final baseUrl = Platform.environment['API_URL'] ?? 'http://localhost:3000/api';
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 12);
   bool allPassed = true;
 
@@ -152,7 +152,133 @@ Future<void> main() async {
     print('❌ SSRF resolver check query crashed: $e');
     allPassed = false;
   }
-  print('\n=== TEST RUN CONCLUSION ===');
+  // Test 7: Search Endpoint
+  try {
+    print('[TEST 7] GET /search?q=india');
+    final request = await client.getUrl(Uri.parse('$baseUrl/search?q=india&limit=2'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data']['articles'] is List) {
+      final list = json['data']['articles'] as List;
+      print('✅ Search query passed! Returned ${list.length} articles matching "india".');
+    } else {
+      print('❌ Search query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Search query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  // Test 8: Categories Endpoint
+  try {
+    print('[TEST 8] GET /categories');
+    final request = await client.getUrl(Uri.parse('$baseUrl/categories'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data'] is List) {
+      final list = json['data'] as List;
+      print('✅ Categories query passed! Returned ${list.length} categories.');
+    } else {
+      print('❌ Categories query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Categories query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  // Test 9: Category by ID Endpoint
+  try {
+    print('[TEST 9] GET /category/technology');
+    final request = await client.getUrl(Uri.parse('$baseUrl/category/technology?limit=2'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data']['articles'] is List) {
+      final list = json['data']['articles'] as List;
+      print('✅ Category ID query passed! Returned ${list.length} articles in technology.');
+    } else {
+      print('❌ Category ID query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Category ID query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  // Test 10: Publishers Endpoint
+  try {
+    print('[TEST 10] GET /publishers');
+    final request = await client.getUrl(Uri.parse('$baseUrl/publishers'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data'] is List) {
+      final list = json['data'] as List;
+      print('✅ Publishers query passed! Returned ${list.length} publishers.');
+    } else {
+      print('❌ Publishers query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Publishers query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  // Test 11: Publisher by ID Endpoint
+  try {
+    print('[TEST 11] GET /publisher/bbc');
+    final request = await client.getUrl(Uri.parse('$baseUrl/publisher/bbc?limit=2'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data']['articles'] is List) {
+      final list = json['data']['articles'] as List;
+      print('✅ Publisher ID query passed! Returned ${list.length} articles from BBC.');
+    } else {
+      print('❌ Publisher ID query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Publisher ID query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  // Test 12: Trending Endpoint
+  try {
+    print('[TEST 12] GET /trending');
+    final request = await client.getUrl(Uri.parse('$baseUrl/trending?limit=3'));
+    final response = await request.close();
+    final body = await response.transform(utf8.decoder).join();
+    final json = jsonDecode(body);
+
+    if (response.statusCode == 200 && json['success'] == true && json['data'] is List) {
+      final list = json['data'] as List;
+      print('✅ Trending query passed! Returned ${list.length} trending articles.');
+    } else {
+      print('❌ Trending query failed. Status: ${response.statusCode}, Body: $body');
+      allPassed = false;
+    }
+  } catch (e) {
+    print('❌ Trending query crashed: $e');
+    allPassed = false;
+  }
+  print('');
+
+  print('=== TEST RUN CONCLUSION ===');
   if (allPassed) {
     print('🚀 ALL TESTS PASSED SUCCESSFULLY! The backend is operational and standardized.');
   } else {

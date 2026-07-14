@@ -15,11 +15,20 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent * 0.8) {
+        Provider.of<NewsProvider>(context, listen: false).loadNextSearchPage();
+      }
+    });
+
     Future.microtask(() {
+      if (!mounted) return;
       Provider.of<NewsProvider>(context, listen: false).clearSearch();
     });
   }
@@ -27,6 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -95,9 +105,31 @@ class _SearchScreenState extends State<SearchScreen> {
           }
 
           return ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
-            itemCount: provider.articles.length,
+            itemCount: provider.articles.length + 1,
             itemBuilder: (context, index) {
+              if (index == provider.articles.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      if (provider.searchLoadingMore)
+                        const Center(
+                          child: CircularProgressIndicator(color: AppColors.onboardingSecondary),
+                        )
+                      else if (!provider.searchHasMore && provider.articles.isNotEmpty)
+                        Center(
+                          child: Text(
+                            "You've reached the end",
+                            style: TextStyle(color: AppColors.mutedText.withOpacity(0.6), fontSize: 12),
+                          ),
+                        ),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                );
+              }
               final art = provider.articles[index];
               return ArticleCard(
                 article: art,

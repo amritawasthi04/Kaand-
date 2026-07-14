@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') || 'general';
+    let category = (searchParams.get('category') || 'general').trim().toLowerCase();
+    if (category === 'nation') {
+      category = 'india';
+    }
     const search = searchParams.get('search')?.trim().toLowerCase() || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
@@ -39,15 +42,17 @@ export async function GET(request: NextRequest) {
     const paginated = filtered.slice(startIndex, startIndex + limit);
     const hasMore = startIndex + limit < total;
 
-    const response: ApiResponse<Article[]> = {
+    const response = {
       success: true,
       message: `Successfully retrieved ${paginated.length} articles.`,
-      data: paginated,
-      pagination: {
-        page,
-        limit,
-        total,
-        hasMore
+      data: {
+        articles: paginated,
+        pagination: {
+          page,
+          limit,
+          total,
+          hasMore
+        }
       },
       timestamp: new Date().toISOString()
     };
@@ -58,7 +63,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: err.message || 'Internal Server Error',
-      data: [],
+      data: {
+        articles: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          hasMore: false
+        }
+      },
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

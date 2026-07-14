@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _currentTab = 0;
   late final AnimationController _rotationController;
   final TextEditingController _profileNameController = TextEditingController();
+  final ScrollController _homeScrollController = ScrollController();
 
   @override
   void initState() {
@@ -36,7 +37,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       duration: const Duration(seconds: 40),
     )..repeat();
 
+    _homeScrollController.addListener(() {
+      final pos = _homeScrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent * 0.8) {
+        Provider.of<NewsProvider>(context, listen: false).loadNextHeadlinesPage();
+      }
+    });
+
     Future.microtask(() {
+      if (!mounted) return;
       Provider.of<NewsProvider>(context, listen: false).loadHeadlines();
     });
 
@@ -46,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    _homeScrollController.dispose();
     _rotationController.dispose();
     _profileNameController.dispose();
     super.dispose();
@@ -136,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         color: AppColors.onboardingAccent,
         backgroundColor: AppColors.onboardingSurface,
         child: CustomScrollView(
+          controller: _homeScrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
             // Custom Header App Bar
@@ -441,9 +452,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
 
-              // Bottom Spacer to prevent floating bottom nav overlap
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: Column(
+                    children: [
+                      if (newsProvider.homeLoadingMore)
+                        const Center(
+                          child: CircularProgressIndicator(color: AppColors.onboardingSecondary),
+                        )
+                      else if (!newsProvider.homeHasMore)
+                        Center(
+                          child: Text(
+                            "You've reached the end",
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.onboardingTextSecondary.withOpacity(0.6),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
               ),
             ],
           ],

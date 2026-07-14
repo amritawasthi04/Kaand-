@@ -5,9 +5,14 @@ export const categoryFeeds: Record<string, string[]> = {
   ],
   technology: [
     'https://techcrunch.com/feed/',
+    'https://www.wired.com/feed/rss',
+    'https://www.engadget.com/rss.xml',
+    'https://9to5google.com/feed/',
+    'https://www.androidauthority.com/feed/',
     'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-IN&gl=IN&ceid=IN:en'
   ],
   business: [
+    'https://www.cnbc.com/id/100003114/device/rss/rss.html',
     'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-IN&gl=IN&ceid=IN:en'
   ],
   sports: [
@@ -23,35 +28,67 @@ export const categoryFeeds: Record<string, string[]> = {
   world: [
     'https://www.theguardian.com/international/rss',
     'http://feeds.bbci.co.uk/news/rss.xml',
+    'https://www.aljazeera.com/xml/rss/all.xml',
+    'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
     'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en'
   ],
   india: [
     'https://www.thehindu.com/news/national/feeder/default.rss',
     'https://indianexpress.com/feed/',
     'https://feeds.feedburner.com/ndtvnews-top-stories',
+    'https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms',
+    'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml',
+    'https://www.news18.com/rss/india.xml',
+    'https://www.livemint.com/rss/news',
     'https://news.google.com/rss/headlines/section/topic/NATION?hl=en-IN&gl=IN&ceid=IN:en'
   ],
   entertainment: [
+    'https://variety.com/feed/',
+    'https://deadline.com/feed/',
+    'https://www.ign.com/articles.rss',
     'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-IN&gl=IN&ceid=IN:en'
   ]
 };
 
+// Mapping of URL substring -> display name
+const SOURCE_MAP: [string, string][] = [
+  ['techcrunch', 'TechCrunch'],
+  ['bbc', 'BBC'],
+  ['theguardian', 'The Guardian'],
+  ['thehindu', 'The Hindu'],
+  ['indianexpress', 'Indian Express'],
+  ['ndtv', 'NDTV'],
+  ['espn', 'ESPN'],
+  ['hindustantimes', 'Hindustan Times'],
+  ['moneycontrol', 'Moneycontrol'],
+  ['livemint', 'LiveMint'],
+  ['economictimes', 'Economic Times'],
+  ['zeenews', 'Zee News'],
+  ['indiatoday', 'India Today'],
+  ['republicworld', 'Republic World'],
+  ['aninews', 'ANI'],
+  ['timesofindia', 'Times of India'],
+  ['news18', 'News18'],
+  ['cnbc', 'CNBC'],
+  ['nytimes', 'New York Times'],
+  ['aljazeera', 'Al Jazeera'],
+  ['cnn', 'CNN'],
+  ['wired', 'Wired'],
+  ['engadget', 'Engadget'],
+  ['9to5google', '9to5Google'],
+  ['androidauthority', 'Android Authority'],
+  ['variety', 'Variety'],
+  ['deadline', 'Deadline'],
+  ['ign', 'IGN'],
+  ['rollingstone', 'Rolling Stone'],
+];
+
 export function normalizeSource(url: string): string {
   const lower = url.toLowerCase();
-  if (lower.includes('techcrunch')) return 'TechCrunch';
-  if (lower.includes('bbc')) return 'BBC';
-  if (lower.includes('theguardian')) return 'The Guardian';
-  if (lower.includes('thehindu')) return 'The Hindu';
-  if (lower.includes('indianexpress')) return 'Indian Express';
-  if (lower.includes('ndtv')) return 'NDTV';
-  if (lower.includes('espn')) return 'ESPN';
-  if (lower.includes('hindustantimes')) return 'Hindustan Times';
-  if (lower.includes('moneycontrol')) return 'Moneycontrol';
-  if (lower.includes('livemint')) return 'LiveMint';
-  if (lower.includes('economictimes')) return 'Economic Times';
-  if (lower.includes('zeenews')) return 'Zee News';
-  if (lower.includes('indiatoday')) return 'India Today';
-  if (lower.includes('republicworld')) return 'Republic World';
-  if (lower.includes('aninews')) return 'ANI';
+  for (const [key, name] of SOURCE_MAP) {
+    if (lower.includes(key)) return name;
+  }
   return 'News';
 }
+
+export const publisherList = SOURCE_MAP.map(([id, name]) => ({ id, name }));

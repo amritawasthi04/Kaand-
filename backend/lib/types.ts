@@ -4,6 +4,7 @@ export interface Article {
   summary?: string;
   image?: string;
   url: string;
+  canonical_url?: string;
   author?: string;
   publishedAt?: string;
   source?: string;
@@ -12,6 +13,11 @@ export interface Article {
   readTime?: number;
   language?: string;
   tags?: string[];
+  metadata?: {
+    og?: Record<string, string>;
+    twitter?: Record<string, string>;
+    schema?: Record<string, any>;
+  };
 }
 
 export interface ApiResponse<T> {

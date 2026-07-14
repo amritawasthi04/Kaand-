@@ -1,0 +1,7 @@
+scrapy>=2.11.0
+pydantic>=2.7.0
+readability-lxml>=0.8.1
+pyyaml>=6.0.1
+lxml>=5.2.0
+beautifulsoup4>=4.12.0
+firebase-admin>=6.0.0

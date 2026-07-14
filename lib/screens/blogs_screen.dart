@@ -14,12 +14,28 @@ class BlogsScreen extends StatefulWidget {
 }
 
 class _BlogsScreenState extends State<BlogsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      final pos = _scrollController.position;
+      if (pos.pixels >= pos.maxScrollExtent * 0.8) {
+        Provider.of<NewsProvider>(context, listen: false).loadNextBlogsPage();
+      }
+    });
+
     Future.microtask(() {
+      if (!mounted) return;
       Provider.of<NewsProvider>(context, listen: false).loadBlogs();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -73,9 +89,31 @@ class _BlogsScreenState extends State<BlogsScreen> {
             onRefresh: () => provider.loadBlogs(),
             color: AppColors.primaryAccent,
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: blogs.length,
+              itemCount: blogs.length + 1,
               itemBuilder: (context, index) {
+                if (index == blogs.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      children: [
+                        if (provider.blogsLoadingMore)
+                          const Center(
+                            child: CircularProgressIndicator(color: AppColors.onboardingSecondary),
+                          )
+                        else if (!provider.blogsHasMore)
+                          Center(
+                            child: Text(
+                              "You've reached the end",
+                              style: TextStyle(color: AppColors.mutedText.withOpacity(0.6), fontSize: 12),
+                            ),
+                          ),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  );
+                }
                 final blog = blogs[index];
                 return ArticleCard(
                   article: blog,

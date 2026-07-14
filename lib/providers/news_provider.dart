@@ -46,6 +46,25 @@ class NewsProvider extends ChangeNotifier {
 
   Timer? _searchDebounce;
 
+  // Pagination states
+  int _homePage = 1;
+  bool _homeHasMore = true;
+  bool _homeLoadingMore = false;
+  bool get homeHasMore => _homeHasMore;
+  bool get homeLoadingMore => _homeLoadingMore;
+
+  int _searchPage = 1;
+  bool _searchHasMore = true;
+  bool _searchLoadingMore = false;
+  bool get searchHasMore => _searchHasMore;
+  bool get searchLoadingMore => _searchLoadingMore;
+
+  int _blogsPage = 1;
+  bool _blogsHasMore = true;
+  bool _blogsLoadingMore = false;
+  bool get blogsHasMore => _blogsHasMore;
+  bool get blogsLoadingMore => _blogsLoadingMore;
+
   static const List<String> categories = [
     'general',
     'business',
@@ -59,30 +78,35 @@ class NewsProvider extends ChangeNotifier {
   Future<void> loadHeadlines() async {
     _status = NewsStatus.loading;
     _errorMessage = '';
+    _homePage = 1;
+    _homeHasMore = true;
+    _homeLoadingMore = false;
     notifyListeners();
 
     try {
       final futures = await Future.wait([
-        _repository.fetchByCategory(_selectedCategory, onUpdated: (freshNews) {
+        _repository.fetchByCategory(_selectedCategory, page: 1, onUpdated: (freshNews) {
           _allArticles = freshNews;
           _filterArticlesLocal();
         }),
-        _repository.fetchGuardian(section: 'world', onUpdated: (freshGuardian) {
+        _repository.fetchGuardian(section: 'world', page: 1, onUpdated: (freshGuardian) {
           _guardianArticles = freshGuardian;
           if (freshGuardian.isNotEmpty) {
             _heroArticle = freshGuardian.first;
           }
           notifyListeners();
         }),
-        _repository.fetchGuardian(section: 'opinion', onUpdated: (freshBlogs) {
+        _repository.fetchGuardian(section: 'opinion', page: 1, onUpdated: (freshBlogs) {
           _blogs = freshBlogs;
           notifyListeners();
         }),
+        _repository.trendingService.getTrending(limit: 5),
       ]);
 
       final newsList = futures[0];
       final guardianList = futures[1];
       final blogsList = futures[2];
+      final trendingList = futures[3];
 
       _allArticles = newsList;
       _guardianArticles = guardianList;
@@ -90,6 +114,7 @@ class NewsProvider extends ChangeNotifier {
         _heroArticle = guardianList.first;
       }
       _blogs = blogsList.isNotEmpty ? blogsList : guardianList;
+      _trendingArticles = trendingList.isNotEmpty ? trendingList : newsList.take(5).toList();
 
       _filterArticlesLocal();
       _status = NewsStatus.success;
@@ -101,12 +126,49 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadNextHeadlinesPage() async {
+    if (_homeLoadingMore || !_homeHasMore) return;
+    _homeLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _homePage + 1;
+      final fresh = await _repository.fetchByCategory(
+        _selectedCategory,
+        page: nextPage,
+      );
+      if (fresh.isEmpty) {
+        _homeHasMore = false;
+      } else {
+        _homePage = nextPage;
+        _appendArticles(fresh);
+      }
+    } catch (_) {}
+    _homeLoadingMore = false;
+    notifyListeners();
+  }
+
+  void _appendArticles(List<Article> fresh) {
+    final seen = _allArticles.map((a) => a.url).toSet();
+    for (final art in fresh) {
+      if (!seen.contains(art.url)) {
+        _allArticles.add(art);
+        seen.add(art.url);
+      }
+    }
+    _filterArticlesLocal();
+  }
+
   Future<void> loadBlogs() async {
     _blogsStatus = NewsStatus.loading;
+    _blogsPage = 1;
+    _blogsHasMore = true;
+    _blogsLoadingMore = false;
     notifyListeners();
     try {
       _blogs = await _repository.fetchGuardian(
         section: 'opinion',
+        page: 1,
         onUpdated: (freshBlogs) {
           _blogs = freshBlogs;
           notifyListeners();
@@ -119,6 +181,33 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadNextBlogsPage() async {
+    if (_blogsLoadingMore || !_blogsHasMore) return;
+    _blogsLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _blogsPage + 1;
+      final fresh = await _repository.fetchGuardian(
+        section: 'opinion',
+        page: nextPage,
+      );
+      if (fresh.isEmpty) {
+        _blogsHasMore = false;
+      } else {
+        _blogsPage = nextPage;
+        final seen = _blogs.map((a) => a.url).toSet();
+        for (final art in fresh) {
+          if (!seen.contains(art.url)) {
+            _blogs.add(art);
+          }
+        }
+      }
+    } catch (_) {}
+    _blogsLoadingMore = false;
+    notifyListeners();
+  }
+
   void search(String query) {
     _searchQuery = query;
     _isSearchActive = query.trim().isNotEmpty;
@@ -126,8 +215,56 @@ class NewsProvider extends ChangeNotifier {
 
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      _filterArticlesLocal();
+      if (_isSearchActive) {
+        _performSearchBackend();
+      } else {
+        _filterArticlesLocal();
+      }
     });
+  }
+
+  Future<void> _performSearchBackend() async {
+    _status = NewsStatus.loading;
+    _searchPage = 1;
+    _searchHasMore = true;
+    _searchLoadingMore = false;
+    notifyListeners();
+    try {
+      final results = await _repository.searchService.searchArticles(_searchQuery, page: 1);
+      _filteredArticles = results;
+      _status = NewsStatus.success;
+    } catch (e) {
+      _status = NewsStatus.error;
+      _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> loadNextSearchPage() async {
+    if (_searchLoadingMore || !_searchHasMore) return;
+    _searchLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _searchPage + 1;
+      final fresh = await _repository.searchService.searchArticles(
+        _searchQuery,
+        page: nextPage,
+      );
+      if (fresh.isEmpty) {
+        _searchHasMore = false;
+      } else {
+        _searchPage = nextPage;
+        final seen = _filteredArticles.map((a) => a.url).toSet();
+        for (final art in fresh) {
+          if (!seen.contains(art.url)) {
+            _filteredArticles.add(art);
+          }
+        }
+      }
+    } catch (_) {}
+    _searchLoadingMore = false;
+    notifyListeners();
   }
 
   void _filterArticlesLocal() {
@@ -142,7 +279,9 @@ class NewsProvider extends ChangeNotifier {
         return titleMatch || descMatch || srcMatch;
       }).toList();
     }
-    _trendingArticles = _filteredArticles.take(5).toList();
+    if (_trendingArticles.isEmpty) {
+      _trendingArticles = _filteredArticles.take(5).toList();
+    }
     _latestArticles = _filteredArticles.length > 5
         ? _filteredArticles.sublist(5)
         : [];
@@ -161,7 +300,6 @@ class NewsProvider extends ChangeNotifier {
     _filterArticlesLocal();
   }
 
-  /// Loads details for a single article (AI summary + content)
   Future<Article> loadDetails(Article article) async {
     return await _repository.getArticleDetails(
       article,
