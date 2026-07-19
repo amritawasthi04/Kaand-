@@ -79,36 +79,90 @@ NewStler/
 - **Node.js**: `v18.0.0+`
 - **Python**: `3.10.0+`
 
-### 2. Environment Variables
-Create a `.env` file inside the `backend` directory:
-```bash
-GEMINI_API_KEY=your_gemini_api_key
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_CLIENT_EMAIL=your_firebase_client_email
-FIREBASE_PRIVATE_KEY="your_firebase_private_key"
-GUARDIAN_API_KEY=your_guardian_developer_api_key
-```
+---
+
+### 2. Firebase & Service Account Configuration
+The application uses Firebase Firestore for caching scraped articles.
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and create a project.
+2. Under project settings, navigate to **Service Accounts** and click **Generate New Private Key**.
+3. Download the JSON key file and place it in the project root directory. Rename it or ensure it matches the pattern `kaand-*.json` (e.g., `kaand-6c9d7-1ae400fa8207.json`).
+   - *Note: This pattern is ignored by git automatically to protect credentials.*
+
+---
 
 ### 3. Running Backend Locally
-```bash
-cd backend
-npm install
-npm run dev
-```
+The backend is a Next.js server handling RSS aggregation, proxying, readability parsing, and Gemini AI summarizing.
 
-### 4. Running Crawler Locally
-```bash
-cd scraper
-pip install -r requirements.txt
-python -m scrapy crawl universal
-```
+1. Navigate to the backend folder:
+   ```bash
+   cd backend
+   ```
+2. Create a `.env` file in the `backend` directory and add the following keys using your Firebase Service Account details:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key
+   GUARDIAN_API_KEY=your_guardian_developer_api_key
+   FIREBASE_PROJECT_ID=your_firebase_project_id
+   FIREBASE_CLIENT_EMAIL=your_firebase_client_email
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Run the Next.js development server:
+   ```bash
+   npm run dev
+   ```
+   *The backend will boot up and be accessible locally at `http://127.0.0.1:3000`.*
 
-### 5. Running Flutter Client
-Ensure you have a device or emulator running:
-```bash
-flutter pub get
-flutter run
-```
+---
+
+### 4. Running the Scraper Crawler Locally
+The Scrapy crawler parses RSS feeds and crawls publisher articles to store clean summaries in Firestore.
+
+1. Navigate to the scraper directory:
+   ```bash
+   cd scraper
+   ```
+2. Create a Python virtual environment and activate it:
+   - **Windows (PowerShell)**:
+     ```powershell
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     ```
+   - **macOS / Linux**:
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate
+     ```
+3. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the crawler:
+   ```bash
+   python -m scrapy crawl universal
+   ```
+   *The scraper will automatically find the `kaand-*.json` credentials in the project root to authenticate with Firestore.*
+
+---
+
+### 5. Running the Flutter Client App
+The client app compiles to multiple target platforms (Android, iOS, Web, Desktop).
+
+1. In the project root, fetch dependencies:
+   ```bash
+   flutter pub get
+   ```
+2. Run the application:
+   ```bash
+   flutter run
+   ```
+3. **Cross-Platform Local Networking Notes**:
+   - The Flutter client dynamically routes local API calls to the correct IP.
+   - On **Android Emulators**, it routes to `http://10.0.2.2:3000` to automatically route requests to your local Next.js server.
+   - On **iOS Simulators, Web, and Desktop**, it routes to `http://127.0.0.1:3000`.
+   - *No manual IP or configuration modifications are required to run across different platforms.*
 
 ---
 

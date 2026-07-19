@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/news_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/article_card.dart';
 import '../widgets/shimmer_card.dart';
-import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -134,12 +134,7 @@ class _SearchScreenState extends State<SearchScreen> {
               return ArticleCard(
                 article: art,
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DetailScreen(article: art),
-                    ),
-                  );
+                  context.push('/detail', extra: art);
                 },
               );
             },

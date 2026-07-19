@@ -16,6 +16,19 @@ class FirestorePipeline:
     def open_spider(self, spider):
         cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
 
+        # Fallback: scan workspace root for service account json
+        if not cred_path or not os.path.isfile(cred_path):
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            try:
+                for file_name in os.listdir(root_dir):
+                    if file_name.endswith(".json") and file_name.startswith("kaand-"):
+                        candidate = os.path.join(root_dir, file_name)
+                        if os.path.isfile(candidate):
+                            cred_path = candidate
+                            break
+            except Exception:
+                pass
+
         if cred_path and os.path.isfile(cred_path):
             try:
                 import firebase_admin

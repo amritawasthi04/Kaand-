@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/news_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/article_card.dart';
 import '../widgets/shimmer_card.dart';
-import 'detail_screen.dart';
 
 class BlogsScreen extends StatefulWidget {
   const BlogsScreen({super.key});
@@ -118,12 +118,7 @@ class _BlogsScreenState extends State<BlogsScreen> {
                 return ArticleCard(
                   article: blog,
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(article: blog),
-                      ),
-                    );
+                    context.push('/detail', extra: blog);
                   },
                 );
               },

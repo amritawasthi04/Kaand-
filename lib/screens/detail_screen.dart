@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:go_router/go_router.dart';
 import '../models/article.dart';
 import '../theme/app_colors.dart';
 import '../widgets/detail_sheet.dart';
@@ -19,48 +20,44 @@ class DetailScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Header Image Background
-          if (article.urlToImage != null && article.urlToImage!.isNotEmpty)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.45,
-              child: CachedNetworkImage(
-                imageUrl: article.urlToImage!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Shimmer.fromColors(
-                  baseColor: AppColors.surface,
-                  highlightColor: Colors.white10,
-                  child: Container(color: Colors.white),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.surface,
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported_outlined, size: 48, color: AppColors.mutedText),
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.45,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: AppColors.primaryGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(Icons.newspaper_rounded, size: 72, color: AppColors.primaryText),
-                ),
-              ),
+          // Header Image Background with Hero Morphing Transition
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.45,
+            child: Hero(
+              tag: 'article-image-${article.title}',
+              child: article.urlToImage != null && article.urlToImage!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: article.urlToImage!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: AppColors.surface,
+                        highlightColor: Colors.white10,
+                        child: Container(color: Colors.white),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.surface,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported_outlined, size: 48, color: AppColors.mutedText),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: AppColors.primaryGradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.newspaper_rounded, size: 72, color: AppColors.primaryText),
+                      ),
+                    ),
             ),
+          ),
             
           // Back Button Overlay
           Positioned(
@@ -70,7 +67,7 @@ class DetailScreen extends StatelessWidget {
               backgroundColor: Colors.black.withOpacity(0.5),
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
               ),
             ),
           ),

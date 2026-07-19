@@ -51,7 +51,7 @@ def clean_html_text(text: str) -> str:
 def validate_image_url(url: str) -> bool:
     if not url or not url.startswith("https://"):
         return False
-    lower = url.toLowerCase() if hasattr(url, 'toLowerCase') else url.lower()
+    lower = url.lower()
     exclusions = ["favicon", "logo", "sprite", "placeholder", "avatar", "tracker", "pixel", "icon", "ad-", "ads-"]
     if any(ex in lower for ex in exclusions):
         return False
@@ -239,7 +239,7 @@ class UniversalSpider(scrapy.Spider):
 
         # Try publisher adapters
         content = ""
-        domain = urllib.parse.urlparse(response.url).hostname.toLowerCase()
+        domain = (urllib.parse.urlparse(response.url).hostname or "").lower()
         matched_adapter = next((k for k in PUBLISHER_ADAPTERS if k in domain), None)
 
         if matched_adapter:

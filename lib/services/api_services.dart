@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
 import '../core/constants.dart';
@@ -6,7 +8,9 @@ import '../models/article.dart';
 final Dio dio = _createDio();
 
 Dio _createDio() {
-  final baseUrl = 'http://192.168.31.4:3000/api/';
+  final baseUrl = (!kIsWeb && Platform.isAndroid)
+      ? 'http://10.0.2.2:3000/api/'
+      : 'http://127.0.0.1:3000/api/';
 
   final options = BaseOptions(
     baseUrl: baseUrl,

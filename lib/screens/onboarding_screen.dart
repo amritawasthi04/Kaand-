@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_colors.dart';
 
@@ -106,6 +107,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               if (_formKey.currentState!.validate()) {
                                 final userProvider = Provider.of<UserProvider>(context, listen: false);
                                 await userProvider.saveName(_controller.text);
+                                if (context.mounted) {
+                                  context.go('/home');
+                                }
                               }
                             },
                             child: const Text('Get Started'),

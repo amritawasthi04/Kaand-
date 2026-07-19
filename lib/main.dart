@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'core/constants.dart';
 import 'providers/news_provider.dart';
 import 'providers/user_provider.dart';
-import 'screens/home_screen.dart';
-import 'screens/onboarding_screen.dart';
 import 'theme/app_colors.dart';
+import 'navigation/app_router.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -33,22 +33,31 @@ void main() async {
   );
 }
 
-class NewsApp extends StatelessWidget {
+class NewsApp extends StatefulWidget {
   const NewsApp({super.key});
 
   @override
+  State<NewsApp> createState() => _NewsAppState();
+}
+
+class _NewsAppState extends State<NewsApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    _router = createRouter(userProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Selector<UserProvider, bool>(
-      selector: (_, provider) => provider.isOnboarded,
-      builder: (context, isOnboarded, child) {
-        return MaterialApp(
-          title: 'Newstler',
-          debugShowCheckedModeBanner: false,
-          theme: _buildTheme(),
-          themeMode: ThemeMode.dark,
-          home: isOnboarded ? const HomeScreen() : const OnboardingScreen(),
-        );
-      },
+    return MaterialApp.router(
+      title: 'Newstler',
+      debugShowCheckedModeBanner: false,
+      theme: _buildTheme(),
+      themeMode: ThemeMode.dark,
+      routerConfig: _router,
     );
   }
 
@@ -101,18 +110,27 @@ class NewsApp extends StatelessWidget {
         ),
       ),
       textTheme: const TextTheme(
-        displayLarge: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold),
-        displayMedium: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold),
-        headlineLarge: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold),
-        headlineMedium: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold),
-        headlineSmall: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.bold),
-        titleLarge: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.w700),
-        titleMedium: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.w600),
-        titleSmall: TextStyle(color: AppColors.secondaryText, fontWeight: FontWeight.w500),
+        displayLarge: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.bold),
+        displayMedium: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.bold),
+        headlineLarge: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.bold),
+        headlineMedium: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.bold),
+        headlineSmall: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.bold),
+        titleLarge: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.w700),
+        titleMedium: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.w600),
+        titleSmall: TextStyle(
+            color: AppColors.secondaryText, fontWeight: FontWeight.w500),
         bodyLarge: TextStyle(color: AppColors.primaryText, fontSize: 16),
         bodyMedium: TextStyle(color: AppColors.secondaryText, fontSize: 14),
         bodySmall: TextStyle(color: AppColors.mutedText, fontSize: 12),
-        labelLarge: TextStyle(color: AppColors.primaryText, fontWeight: FontWeight.w600),
+        labelLarge: TextStyle(
+            color: AppColors.primaryText, fontWeight: FontWeight.w600),
         labelMedium: TextStyle(color: AppColors.secondaryText),
         labelSmall: TextStyle(color: AppColors.mutedText),
       ),
