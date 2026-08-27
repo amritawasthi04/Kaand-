@@ -4,16 +4,27 @@ import { cache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
-const GUARDIAN_API_KEY = process.env.GUARDIAN_API_KEY || 'cd760a37-962a-475d-a08f-75738e87a663';
+const GUARDIAN_API_KEY = process.env.GUARDIAN_API_KEY;
 const GUARDIAN_BASE_URL = 'https://content.guardianapis.com';
 
 export async function GET(request: NextRequest) {
   try {
+    if (!GUARDIAN_API_KEY) {
+      return NextResponse.json({
+        success: false,
+        message: 'Guardian integration is not configured.',
+        data: [],
+        timestamp: new Date().toISOString()
+      }, { status: 503 });
+    }
+
     const { searchParams } = new URL(request.url);
     const section = searchParams.get('section') || 'world';
     const q = searchParams.get('q') || '';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const requestedPage = parseInt(searchParams.get('page') || '1', 10);
+    const requestedLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+    const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(1, requestedLimit)) : 20;
 
     const cacheKey = `guardian_${section}_${q}_${page}_${limit}`;
     let articles = cache.get<Article[]>(cacheKey);

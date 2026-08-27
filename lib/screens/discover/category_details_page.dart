@@ -118,6 +118,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                                       imageUrl: article.urlToImage ?? '',
                                       width: 90,
                                       height: 90,
+                                      memCacheWidth: 300,
                                       fit: BoxFit.cover,
                                       placeholder: (c, u) => Container(color: AppColors.surface, width: 90, height: 90),
                                       errorWidget: (c, u, e) => Container(color: AppColors.surface, width: 90, height: 90),
@@ -244,6 +245,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                           child: CachedNetworkImage(
                             imageUrl: article.urlToImage ?? '',
                             height: 90,
+                            memCacheWidth: 400,
                             fit: BoxFit.cover,
                             placeholder: (c, u) => Container(color: AppColors.surface, height: 90),
                             errorWidget: (c, u, e) => Container(color: AppColors.surface, height: 90),
@@ -295,6 +297,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                     imageUrl: article.urlToImage ?? '',
                     height: 200,
                     width: double.infinity,
+                    memCacheWidth: 800,
                     fit: BoxFit.cover,
                     placeholder: (c, u) => Container(color: AppColors.surface, height: 200),
                     errorWidget: (c, u, e) => Container(color: AppColors.surface, height: 200),

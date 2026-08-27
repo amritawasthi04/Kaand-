@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- KAAND launch background. Must match the ORBIT splash scene base color
+         (AppColors.onboardingBg) so the native -> Flutter handoff is invisible. -->
+    <color name="kaand_launch_bg">#070B18</color>
+</resources>

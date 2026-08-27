@@ -84,43 +84,43 @@ class NewsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final futures = await Future.wait([
-        _repository.fetchByCategory(_selectedCategory, page: 1, onUpdated: (freshNews) {
-          _allArticles = freshNews;
-          _filterArticlesLocal();
-        }),
-        _repository.fetchGuardian(section: 'world', page: 1, onUpdated: (freshGuardian) {
-          _guardianArticles = freshGuardian;
-          if (freshGuardian.isNotEmpty) {
-            _heroArticle = freshGuardian.first;
-          }
-          notifyListeners();
-        }),
-        _repository.fetchGuardian(section: 'opinion', page: 1, onUpdated: (freshBlogs) {
-          _blogs = freshBlogs;
-          notifyListeners();
-        }),
-        _repository.trendingService.getTrending(limit: 5),
-      ]);
+      final newsList = await _repository
+          .fetchByCategory(_selectedCategory, page: 1)
+          .catchError((_) => <Article>[]);
 
-      final newsList = futures[0];
-      final guardianList = futures[1];
-      final blogsList = futures[2];
-      final trendingList = futures[3];
+      final guardianWorldList = await _repository
+          .fetchGuardian(section: 'world', page: 1)
+          .catchError((_) => <Article>[]);
+
+      final guardianOpinionList = await _repository
+          .fetchGuardian(section: 'opinion', page: 1)
+          .catchError((_) => <Article>[]);
+
+      final trendingList = await _repository.trendingService
+          .getTrending(limit: 5)
+          .catchError((_) => <Article>[]);
 
       _allArticles = newsList;
-      _guardianArticles = guardianList;
-      if (guardianList.isNotEmpty) {
-        _heroArticle = guardianList.first;
+      _guardianArticles = guardianWorldList;
+      if (guardianWorldList.isNotEmpty) {
+        _heroArticle = guardianWorldList.first;
       }
-      _blogs = blogsList.isNotEmpty ? blogsList : guardianList;
-      _trendingArticles = trendingList.isNotEmpty ? trendingList : newsList.take(5).toList();
+      _blogs = guardianOpinionList.isNotEmpty
+          ? guardianOpinionList
+          : guardianWorldList;
+      _trendingArticles =
+          trendingList.isNotEmpty ? trendingList : newsList.take(5).toList();
 
       _filterArticlesLocal();
-      _status = NewsStatus.success;
+      _status =
+          _filteredArticles.isNotEmpty ? NewsStatus.success : NewsStatus.error;
+      if (_status == NewsStatus.error) {
+        _errorMessage = 'Unable to fetch news feed. Please try again.';
+      }
     } catch (e) {
       _errorMessage = e.toString();
-      _status = _filteredArticles.isEmpty ? NewsStatus.error : NewsStatus.success;
+      _status =
+          _filteredArticles.isEmpty ? NewsStatus.error : NewsStatus.success;
     }
 
     notifyListeners();
@@ -137,7 +137,7 @@ class NewsProvider extends ChangeNotifier {
         _selectedCategory,
         page: nextPage,
       );
-      if (fresh.isEmpty) {
+      if (fresh.isEmpty || fresh.length < 20) {
         _homeHasMore = false;
       } else {
         _homePage = nextPage;
@@ -192,7 +192,7 @@ class NewsProvider extends ChangeNotifier {
         section: 'opinion',
         page: nextPage,
       );
-      if (fresh.isEmpty) {
+      if (fresh.isEmpty || fresh.length < 20) {
         _blogsHasMore = false;
       } else {
         _blogsPage = nextPage;
@@ -211,37 +211,55 @@ class NewsProvider extends ChangeNotifier {
   void search(String query) {
     _searchQuery = query;
     _isSearchActive = query.trim().isNotEmpty;
+
+    if (!_isSearchActive) {
+      _errorMessage = '';
+      _filteredArticles = [];
+      _status = NewsStatus.success;
+      notifyListeners();
+      _searchDebounce?.cancel();
+      return;
+    }
+
     notifyListeners();
 
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
       if (_isSearchActive) {
         _performSearchBackend();
-      } else {
-        _filterArticlesLocal();
       }
     });
   }
 
+  Future<void> retrySearch() async {
+    if (_isSearchActive) {
+      await _performSearchBackend();
+    }
+  }
+
   Future<void> _performSearchBackend() async {
     _status = NewsStatus.loading;
+    _errorMessage = '';
     _searchPage = 1;
     _searchHasMore = true;
     _searchLoadingMore = false;
     notifyListeners();
     try {
-      final results = await _repository.searchService.searchArticles(_searchQuery, page: 1);
+      final results =
+          await _repository.searchService.searchArticles(_searchQuery, page: 1);
       _filteredArticles = results;
       _status = NewsStatus.success;
     } catch (e) {
       _status = NewsStatus.error;
-      _errorMessage = e.toString();
+      _errorMessage = e is Exception
+          ? e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '')
+          : 'An unexpected error occurred while searching.';
     }
     notifyListeners();
   }
 
   Future<void> loadNextSearchPage() async {
-    if (_searchLoadingMore || !_searchHasMore) return;
+    if (!_isSearchActive || _searchLoadingMore || !_searchHasMore) return;
     _searchLoadingMore = true;
     notifyListeners();
 
@@ -251,7 +269,7 @@ class NewsProvider extends ChangeNotifier {
         _searchQuery,
         page: nextPage,
       );
-      if (fresh.isEmpty) {
+      if (fresh.isEmpty || fresh.length < 20) {
         _searchHasMore = false;
       } else {
         _searchPage = nextPage;
@@ -282,9 +300,8 @@ class NewsProvider extends ChangeNotifier {
     if (_trendingArticles.isEmpty) {
       _trendingArticles = _filteredArticles.take(5).toList();
     }
-    _latestArticles = _filteredArticles.length > 5
-        ? _filteredArticles.sublist(5)
-        : [];
+    _latestArticles =
+        _filteredArticles.length > 5 ? _filteredArticles.sublist(5) : [];
     notifyListeners();
   }
 
@@ -309,7 +326,7 @@ class NewsProvider extends ChangeNotifier {
           _allArticles[index] = updated;
           _filterArticlesLocal();
         }
-        
+
         int blogIndex = _blogs.indexWhere((a) => a.url == updated.url);
         if (blogIndex != -1) {
           _blogs[blogIndex] = updated;
@@ -321,7 +338,8 @@ class NewsProvider extends ChangeNotifier {
           notifyListeners();
         }
 
-        int guardIndex = _guardianArticles.indexWhere((a) => a.url == updated.url);
+        int guardIndex =
+            _guardianArticles.indexWhere((a) => a.url == updated.url);
         if (guardIndex != -1) {
           _guardianArticles[guardIndex] = updated;
           notifyListeners();

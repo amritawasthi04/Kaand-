@@ -65,9 +65,9 @@ class AppColors {
   static const Color glassBorder = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
   static const double glassBlur = 24.0;
   static const BoxShadow glassShadow = BoxShadow(
-    color: Color(0x73000000), // rgba(0,0,0,0.45)
-    offset: Offset(0, 20),
-    blurRadius: 60,
+    color: Color(0x59000000),
+    offset: Offset(0, 6),
+    blurRadius: 14,
   );
 
   // Button Colors
@@ -76,4 +76,23 @@ class AppColors {
   static const Color btnSecondaryBackground = Color(0xFF1D2030);
   static const Color btnSecondaryBorder = Color(0xFF2A2E3D);
   static const Color btnGhostHover = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
+
+  // Semantic aliases (ORBIT splash + live system)
+  static const Color brand = primaryAccent; // Electric Violet
+  static const Color brandDim = secondaryAccent; // Royal Purple
+  static const Color live = highlight; // Neon Cyan - the signal color
+  static const Color liveDim = Color(0x5522D3EE); // 33% cyan
+  static const Color wordmark = Color(0xFFF2EDFF); // Soft white for wordmark
+  static const Color tagline = Color(0xFFA8D8F5); // Ice blue for taglines
+}
+
+/// Motion durations shared across the app. Splash choreography is driven by
+/// [splashIntro] as a single controller; ambient loops use [ambientLoop].
+class AppDurations {
+  static const Duration fast = Duration(milliseconds: 150);
+  static const Duration base = Duration(milliseconds: 240);
+  static const Duration slow = Duration(milliseconds: 350);
+  static const Duration splashIntro = Duration(milliseconds: 2800);
+  static const Duration ambientLoop = Duration(milliseconds: 6000);
+  static const Duration liteSplashHold = Duration(milliseconds: 600);
 }

@@ -16,37 +16,24 @@ class FirestorePipeline:
     def open_spider(self, spider):
         cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
 
-        # Fallback: scan workspace root for service account json
-        if not cred_path or not os.path.isfile(cred_path):
-            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            try:
-                for file_name in os.listdir(root_dir):
-                    if file_name.endswith(".json") and file_name.startswith("kaand-"):
-                        candidate = os.path.join(root_dir, file_name)
-                        if os.path.isfile(candidate):
-                            cred_path = candidate
-                            break
-            except Exception:
-                pass
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, firestore
 
-        if cred_path and os.path.isfile(cred_path):
-            try:
-                import firebase_admin
-                from firebase_admin import credentials, firestore
-
+            if cred_path and os.path.isfile(cred_path):
                 cred = credentials.Certificate(cred_path)
-                # ponytail: single default app, multi-project needs named apps
-                try:
-                    firebase_admin.get_app()
-                except ValueError:
-                    firebase_admin.initialize_app(cred)
-
-                self.db = firestore.client()
-                logger.info("Firestore pipeline initialized.")
-            except Exception as e:
-                logger.warning(f"Firestore init failed, falling back to JSON: {e}")
-                self._init_fallback(spider)
-        else:
+            else:
+                # Cloud Run supplies Application Default Credentials through its
+                # attached service account; no service-account JSON is needed.
+                cred = credentials.ApplicationDefault()
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                firebase_admin.initialize_app(cred)
+            self.db = firestore.client()
+            logger.info("Firestore pipeline initialized.")
+        except Exception as e:
+            logger.warning(f"Firestore init failed, falling back to JSON: {e}")
             logger.info("No GOOGLE_APPLICATION_CREDENTIALS set. Writing to articles.json instead.")
             self._init_fallback(spider)
 

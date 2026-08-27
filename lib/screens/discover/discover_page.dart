@@ -303,6 +303,7 @@ class _DiscoverPageState extends State<DiscoverPage> with SingleTickerProviderSt
                           child: CachedNetworkImage(
                             imageUrl: article.urlToImage ?? '',
                             height: 110,
+                            memCacheWidth: 500,
                             fit: BoxFit.cover,
                             placeholder: (c, u) => Container(color: AppColors.surface, height: 110),
                             errorWidget: (c, u, e) => Container(color: AppColors.surface, height: 110),
@@ -425,6 +426,7 @@ class _DiscoverPageState extends State<DiscoverPage> with SingleTickerProviderSt
                         imageUrl: article.urlToImage ?? '',
                         height: 180,
                         width: double.infinity,
+                        memCacheWidth: 800,
                         fit: BoxFit.cover,
                         placeholder: (c, u) => Container(color: AppColors.surface, height: 180),
                         errorWidget: (c, u, e) => Container(color: AppColors.surface, height: 180),
@@ -601,6 +603,7 @@ class _DiscoverPageState extends State<DiscoverPage> with SingleTickerProviderSt
                     imageUrl: article.urlToImage ?? '',
                     width: 60,
                     height: 60,
+                    memCacheWidth: 200,
                     fit: BoxFit.cover,
                     placeholder: (c, u) => Container(color: AppColors.surface, width: 60, height: 60),
                     errorWidget: (c, u, e) => Container(color: AppColors.surface, width: 60, height: 60),

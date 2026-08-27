@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:newstler/main.dart';
 import 'package:newstler/providers/news_provider.dart';
 import 'package:newstler/providers/user_provider.dart';
+import 'package:newstler/screens/kaand_splash_screen.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('Newstler home screen smoke test', (WidgetTester tester) async {
-    // Build our app with the providers and trigger a frame.
+  testWidgets('Newstler app boots into ORBIT splash', (WidgetTester tester) async {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -17,7 +17,11 @@ void main() {
       ),
     );
 
-    // Verify that the app builds.
+    expect(find.byType(NewsApp), findsOneWidget);
+    expect(find.byType(KaandSplashScreen), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 2500));
+
     expect(find.byType(NewsApp), findsOneWidget);
   });
 }

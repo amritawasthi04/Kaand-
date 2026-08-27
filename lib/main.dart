@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants.dart';
 import 'providers/news_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/scores_provider.dart';
 import 'theme/app_colors.dart';
 import 'navigation/app_router.dart';
 
@@ -13,6 +15,11 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -27,6 +34,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => NewsProvider()),
+        ChangeNotifierProvider(create: (_) => ScoresProvider()),
       ],
       child: const NewsApp(),
     ),
@@ -53,11 +61,23 @@ class _NewsAppState extends State<NewsApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Newstler',
+      title: 'Kaand',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
       themeMode: ThemeMode.dark,
       routerConfig: _router,
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.25,
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 

@@ -154,6 +154,7 @@ class _TrendingPageState extends State<TrendingPage> with SingleTickerProviderSt
                                 imageUrl: article.urlToImage ?? '',
                                 width: 75,
                                 height: 75,
+                                memCacheWidth: 250,
                                 fit: BoxFit.cover,
                                 placeholder: (c, u) => Container(color: AppColors.surface, width: 75, height: 75),
                                 errorWidget: (c, u, e) => Container(color: AppColors.surface, width: 75, height: 75),

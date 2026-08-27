@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCategoryNews } from '@/lib/rss';
 import { cache } from '@/lib/cache';
+import { getCategoryArticlesFromStore } from '@/lib/ingest';
 import { Article, ApiResponse } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -13,14 +14,17 @@ export async function GET(request: NextRequest) {
       category = 'india';
     }
     const search = searchParams.get('search')?.trim().toLowerCase() || '';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const requestedPage = parseInt(searchParams.get('page') || '1', 10);
+    const requestedLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+    const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(1, requestedLimit)) : 20;
 
     const cacheKey = `category_${category}`;
     let articles = cache.get<Article[]>(cacheKey);
 
     if (!articles) {
-      articles = await fetchCategoryNews(category);
+      const stored = await getCategoryArticlesFromStore(category, 120);
+      articles = stored ?? (await fetchCategoryNews(category));
       // Cache for 15 minutes (900 seconds)
       cache.set(cacheKey, articles, 900);
     }

@@ -1,4 +1,4 @@
-package com.example.newstler
+package com.amritawasthi.kaand
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -48,6 +48,7 @@ class ArticleCard extends StatelessWidget {
                     imageUrl: article.urlToImage!,
                     height: 200,
                     width: double.infinity,
+                    memCacheWidth: 800,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
                       height: 200,

@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive/hive.dart';
 import '../../shared/widgets/kaand_lottie.dart';
 import '../home/main_shell.dart';
@@ -336,17 +335,18 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                               },
                             ),
                           ),
-                          // Logo (SVG) with entrance Scale and soft breathing pulse
+                          // Official Kaand logo with entrance scale and soft breathing pulse.
                           FadeTransition(
                             opacity: _logoOpacity,
                             child: ScaleTransition(
                               scale: _logoScale,
                               child: ScaleTransition(
                                 scale: _pulseLogoScale,
-                                child: SvgPicture.asset(
-                                  'assets/logo/kaand_logo.svg',
+                                child: Image.asset(
+                                  'assets/logo/Kaand_logo.png',
                                   width: 100,
                                   height: 100,
+                                  fit: BoxFit.contain,
                                   semanticsLabel: 'KAAND Logo',
                                 ),
                               ),

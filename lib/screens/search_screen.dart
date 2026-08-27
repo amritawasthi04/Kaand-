@@ -79,18 +79,62 @@ class _SearchScreenState extends State<SearchScreen> {
 
           if (provider.status == NewsStatus.error) {
             return Center(
-              child: Text(
-                'Error: ${provider.errorMessage}',
-                style: const TextStyle(color: AppColors.error),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_rounded,
+                        size: 54, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(
+                      provider.errorMessage.isEmpty
+                          ? 'Search failed to complete.'
+                          : provider.errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.primaryText, fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        provider.retrySearch();
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry Search'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
           if (provider.isSearchActive && provider.articles.isEmpty) {
-            return const Center(
-              child: Text(
-                'No search results found.',
-                style: TextStyle(color: AppColors.mutedText),
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.search_off_rounded,
+                        size: 54, color: AppColors.mutedText),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No search results found.',
+                      style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Try searching for different keywords or check your spelling.',
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(color: AppColors.mutedText, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -116,13 +160,17 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       if (provider.searchLoadingMore)
                         const Center(
-                          child: CircularProgressIndicator(color: AppColors.onboardingSecondary),
+                          child: CircularProgressIndicator(
+                              color: AppColors.onboardingSecondary),
                         )
-                      else if (!provider.searchHasMore && provider.articles.isNotEmpty)
+                      else if (!provider.searchHasMore &&
+                          provider.articles.isNotEmpty)
                         Center(
                           child: Text(
                             "You've reached the end",
-                            style: TextStyle(color: AppColors.mutedText.withOpacity(0.6), fontSize: 12),
+                            style: TextStyle(
+                                color: AppColors.mutedText.withOpacity(0.6),
+                                fontSize: 12),
                           ),
                         ),
                       const SizedBox(height: 80),

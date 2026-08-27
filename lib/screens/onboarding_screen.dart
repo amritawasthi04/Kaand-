@@ -51,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          'Newstler',
+                          'KAAND',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,

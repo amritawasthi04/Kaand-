@@ -375,6 +375,7 @@ class _PublishersPageState extends State<PublishersPage> {
                             imageUrl: article.urlToImage ?? '',
                             width: 80,
                             height: 80,
+                            memCacheWidth: 260,
                             fit: BoxFit.cover,
                             placeholder: (c, u) => Container(color: AppColors.surface, width: 80, height: 80),
                             errorWidget: (c, u, e) => Container(color: AppColors.surface, width: 80, height: 80),

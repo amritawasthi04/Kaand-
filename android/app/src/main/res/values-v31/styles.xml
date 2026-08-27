@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ system splash: brand-dark background behind the launcher icon
+     so the OS splash -> Flutter ORBIT scene handoff is seamless. -->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/kaand_launch_bg</item>
+        <item name="android:windowSplashScreenBackground">@color/kaand_launch_bg</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/kaand_launch_bg</item>
+    </style>
+</resources>

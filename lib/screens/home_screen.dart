@@ -2,15 +2,16 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/news_provider.dart';
 import '../providers/user_provider.dart';
 import '../models/article.dart';
 import '../theme/app_colors.dart';
+import '../core/responsive.dart';
 import '../services/hive_cache.dart';
 import '../widgets/shimmer_card.dart';
+import '../widgets/breaking_news_pill.dart';
 
 // --- CUSTOM PAINTER FOR BACKGROUND GLOBE ---
 class HeaderGlobePainter extends CustomPainter {
@@ -136,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- FLOATING BOTTOM NAVIGATION BAR ---
   Widget _buildFloatingBottomNavBar(BuildContext context) {
     final shell = widget.navigationShell;
-    const tabsCount = 4;
+    const tabsCount = 5;
     return GlassCard(
       borderRadius: 30,
       bgColor: AppColors.onboardingSurface.withOpacity(0.75),
@@ -178,8 +179,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       _buildNavItem(0, Icons.home_rounded, 'Home'),
                       _buildNavItem(1, Icons.grid_view_rounded, 'Categories'),
-                      _buildNavItem(2, Icons.bookmark_rounded, 'Bookmarks'),
-                      _buildNavItem(3, Icons.person_rounded, 'Profile'),
+                      _buildNavItem(2, Icons.sports_score_rounded, 'Scores'),
+                      _buildNavItem(3, Icons.bookmark_rounded, 'Bookmarks'),
+                      _buildNavItem(4, Icons.person_rounded, 'Profile'),
                     ],
                   ),
                 ),
@@ -221,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOutCubic,
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 9,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                   color: isActive ? AppColors.onboardingAccent : Colors.white60,
@@ -324,14 +326,16 @@ class CategorySquareChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final side = ScreenSize.chipSide(context);
+    final f = side / 68.0;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
         margin: const EdgeInsets.only(right: 12),
-        width: 68,
-        height: 68,
+        width: side,
+        height: side,
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.onboardingAccent.withOpacity(0.12)
@@ -359,7 +363,7 @@ class CategorySquareChip extends StatelessWidget {
             if (icon != null)
               Icon(
                 icon,
-                size: 20,
+                size: 20 * f,
                 color: isSelected
                     ? AppColors.onboardingAccent
                     : AppColors.onboardingTextSecondary,
@@ -367,13 +371,16 @@ class CategorySquareChip extends StatelessWidget {
             else
               Text(
                 emoji,
-                style: const TextStyle(fontSize: 20),
+                style: TextStyle(fontSize: 20 * f, height: 1.0),
               ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6 * f),
             Text(
               label,
-              style: GoogleFonts.inter(
-                fontSize: 11,
+              maxLines: 1,
+              softWrap: false,
+              style: AppFonts.sg(
+                fontSize: 11 * f,
+                height: 1.05,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
                     ? AppColors.onboardingTextPrimary
@@ -505,7 +512,7 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 220,
+          height: ScreenSize.heroHeight(context),
           child: PageView.builder(
             controller: _pageController,
             itemCount: carouselArticles.length,
@@ -532,6 +539,8 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
+                                  memCacheWidth: 800,
+                                  memCacheHeight: 520,
                                   placeholder: (context, url) =>
                                       Shimmer.fromColors(
                                     baseColor: AppColors.onboardingSurface,
@@ -613,7 +622,7 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                                     const SizedBox(width: 4),
                                     Text(
                                       'BREAKING NEWS',
-                                      style: GoogleFonts.inter(
+                                      style: AppFonts.sg(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -629,7 +638,7 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                                 art.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
+                                style: AppFonts.sg(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -660,7 +669,7 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                                             art.sourceName ?? 'News',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.inter(
+                                            style: AppFonts.sg(
                                               fontSize: 10,
                                               color: Colors.white70,
                                               fontWeight: FontWeight.w500,
@@ -686,7 +695,7 @@ class _HeroNewsCarouselState extends State<HeroNewsCarousel> {
                                       children: [
                                         Text(
                                           'Read Full Story',
-                                          style: GoogleFonts.inter(
+                                          style: AppFonts.sg(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
@@ -755,11 +764,12 @@ class TrendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardW = ScreenSize.trendingCardWidth(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(right: 14),
-        width: 170,
+        width: cardW,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -770,8 +780,8 @@ class TrendingCard extends StatelessWidget {
                   child: Hero(
                     tag: 'article-image-${article.title}',
                     child: Container(
-                      height: 110,
-                      width: 170,
+                      height: cardW * 0.64,
+                      width: cardW,
                       decoration: BoxDecoration(
                         color: AppColors.onboardingSurface,
                         border: Border.all(
@@ -784,6 +794,7 @@ class TrendingCard extends StatelessWidget {
                           ? CachedNetworkImage(
                               imageUrl: article.urlToImage!,
                               fit: BoxFit.cover,
+                              memCacheWidth: 400,
                               placeholder: (context, url) => Shimmer.fromColors(
                                 baseColor: AppColors.onboardingSurface,
                                 highlightColor: Colors.white10,
@@ -824,7 +835,7 @@ class TrendingCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               (article.sectionName ?? 'General').toUpperCase(),
-              style: GoogleFonts.inter(
+              style: AppFonts.sg(
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
                 color: AppColors.onboardingAccent,
@@ -836,7 +847,7 @@ class TrendingCard extends StatelessWidget {
               article.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
+              style: AppFonts.sg(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: AppColors.onboardingTextPrimary,
@@ -848,7 +859,7 @@ class TrendingCard extends StatelessWidget {
               '${article.sourceName ?? 'News'} • ${article.relativeTime} ago',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
+              style: AppFonts.sg(
                 fontSize: 9,
                 color: AppColors.onboardingTextSecondary,
               ),
@@ -888,8 +899,8 @@ class HeadlineTile extends StatelessWidget {
               child: Hero(
                 tag: 'article-image-${article.title}',
                 child: Container(
-                  height: 90,
-                  width: 90,
+                  height: ScreenSize.tileThumb(context),
+                  width: ScreenSize.tileThumb(context),
                   decoration: BoxDecoration(
                     color: AppColors.onboardingSurface,
                     border: Border.all(
@@ -902,6 +913,7 @@ class HeadlineTile extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: article.urlToImage!,
                           fit: BoxFit.cover,
+                          memCacheWidth: 300,
                           placeholder: (context, url) => Shimmer.fromColors(
                             baseColor: AppColors.onboardingSurface,
                             highlightColor: Colors.white10,
@@ -924,7 +936,7 @@ class HeadlineTile extends StatelessWidget {
                 children: [
                   Text(
                     (article.sectionName ?? 'General').toUpperCase(),
-                    style: GoogleFonts.inter(
+                    style: AppFonts.sg(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                       color: AppColors.onboardingAccent,
@@ -936,7 +948,7 @@ class HeadlineTile extends StatelessWidget {
                     article.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
+                    style: AppFonts.sg(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -952,7 +964,7 @@ class HeadlineTile extends StatelessWidget {
                           '${article.sourceName ?? 'News'} • ${article.relativeTime} ago',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
+                          style: AppFonts.sg(
                             fontSize: 9,
                             color: AppColors.onboardingTextSecondary,
                           ),
@@ -1131,7 +1143,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                           const SizedBox(height: 12),
                           Text(
                             '${_getGreeting()},',
-                            style: GoogleFonts.inter(
+                            style: AppFonts.sg(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: AppColors.onboardingTextSecondary,
@@ -1144,7 +1156,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                                   userProvider.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
+                                  style: AppFonts.sg(
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
@@ -1159,7 +1171,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                           const SizedBox(height: 4),
                           Text(
                             "Here's what's happening in the world today.",
-                            style: GoogleFonts.inter(
+                            style: AppFonts.sg(
                               fontSize: 12,
                               color: AppColors.onboardingTextSecondary.withOpacity(0.8),
                             ),
@@ -1168,14 +1180,55 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                       ),
                     ),
                   ),
+                  
+                  // Breaking News Pill
+                  SliverToBoxAdapter(
+                    child: Consumer<NewsProvider>(
+                      builder: (context, provider, _) {
+                        // Show breaking news from latest articles that are very recent
+                        final breaking = provider.articles
+                            .where((a) => a.publishedAt != null)
+                            .where((a) {
+                              try {
+                                final published = DateTime.parse(a.publishedAt!);
+                                return DateTime.now().difference(published).inMinutes <= 15;
+                              } catch (_) {
+                                return false;
+                              }
+                            })
+                            .take(3)
+                            .toList();
+                        
+                        if (breaking.isEmpty) return const SizedBox.shrink();
+                        
+                        return BreakingNewsPill(
+                          breakingArticles: breaking,
+                          onDismiss: () {},
+                          onTapArticle: () {
+                            if (breaking.isNotEmpty) {
+                              context.push('/detail', extra: breaking.first);
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
 
                   // Feed States
                   if (newsProvider.status == NewsStatus.loading && newsProvider.articles.isEmpty)
                     SliverFillRemaining(
-                      child: ListView.builder(
+                      hasScrollBody: false,
+                      child: Padding(
                         padding: const EdgeInsets.all(16),
-                        itemCount: 4,
-                        itemBuilder: (context, index) => const ShimmerCard(),
+                        child: Column(
+                          children: const [
+                            ShimmerCard(),
+                            SizedBox(height: 12),
+                            ShimmerCard(),
+                            SizedBox(height: 12),
+                            ShimmerCard(),
+                          ],
+                        ),
                       ),
                     )
                   else if (newsProvider.status == NewsStatus.error && newsProvider.articles.isEmpty)
@@ -1217,11 +1270,13 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.only(top: 16.0),
-                        child: HeroNewsCarousel(
-                          articles: newsProvider.guardianArticles,
-                          onTap: (art) {
-                            context.push('/detail', extra: art);
-                          },
+                        child: RepaintBoundary(
+                          child: HeroNewsCarousel(
+                            articles: newsProvider.guardianArticles,
+                            onTap: (art) {
+                              context.push('/detail', extra: art);
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -1250,7 +1305,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                                     const SizedBox(width: 6),
                                     Text(
                                       'Trending Now',
-                                      style: GoogleFonts.inter(
+                                      style: AppFonts.sg(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -1260,7 +1315,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                                 ),
                                 Text(
                                   'See All',
-                                  style: GoogleFonts.inter(
+                                  style: AppFonts.sg(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.onboardingSecondary,
@@ -1270,7 +1325,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(
-                            height: 195,
+                            height: ScreenSize.trendingRowHeight(context),
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1312,7 +1367,7 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                                 const SizedBox(width: 8),
                                 Text(
                                   'Latest Headlines',
-                                  style: GoogleFonts.inter(
+                                  style: AppFonts.sg(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
@@ -1364,14 +1419,14 @@ class _HomeTabState extends State<HomeTab> with SingleTickerProviderStateMixin {
                               Center(
                                 child: Text(
                                   "You've reached the end",
-                                  style: GoogleFonts.inter(
+                                  style: AppFonts.sg(
                                     fontSize: 12,
                                     color: AppColors.onboardingTextSecondary.withOpacity(0.6),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
-                            const SizedBox(height: 100),
+                            SizedBox(height: AppSpacing.navClearance(context)),
                           ],
                         ),
                       ),
@@ -1414,7 +1469,7 @@ class CategoriesTab extends StatelessWidget {
               padding: const EdgeInsets.all(20.0),
               child: Text(
                 'Explore Categories',
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -1455,7 +1510,7 @@ class CategoriesTab extends StatelessWidget {
                             const SizedBox(height: 12),
                             Text(
                               cat.label,
-                              style: GoogleFonts.inter(
+                              style: AppFonts.sg(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -1464,7 +1519,7 @@ class CategoriesTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               'Click to discover',
-                              style: GoogleFonts.inter(
+                              style: AppFonts.sg(
                                 fontSize: 11,
                                 color: AppColors.onboardingTextSecondary,
                               ),
@@ -1477,7 +1532,7 @@ class CategoriesTab extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: 100),
+            SizedBox(height: AppSpacing.navClearance(context)),
           ],
         ),
       ),
@@ -1504,7 +1559,7 @@ class BookmarksTab extends StatelessWidget {
               padding: const EdgeInsets.all(20.0),
               child: Text(
                 'Bookmarks',
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -1521,7 +1576,7 @@ class BookmarksTab extends StatelessWidget {
                           const SizedBox(height: 12),
                           Text(
                             'No bookmarked articles yet.',
-                            style: GoogleFonts.inter(
+                            style: AppFonts.sg(
                               fontSize: 14,
                               color: AppColors.onboardingTextSecondary,
                             ),
@@ -1545,7 +1600,7 @@ class BookmarksTab extends StatelessWidget {
                       },
                     ),
             ),
-            const SizedBox(height: 100),
+            SizedBox(height: AppSpacing.navClearance(context)),
           ],
         ),
       ),
@@ -1591,7 +1646,7 @@ class _ProfileTabState extends State<ProfileTab> {
             children: [
               Text(
                 'Profile Settings',
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -1620,7 +1675,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     const SizedBox(height: 14),
                     Text(
                       userProvider.name,
-                      style: GoogleFonts.inter(
+                      style: AppFonts.sg(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -1628,7 +1683,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     ),
                     Text(
                       'Solo News Reader',
-                      style: GoogleFonts.inter(
+                      style: AppFonts.sg(
                         fontSize: 12,
                         color: AppColors.onboardingTextSecondary,
                       ),
@@ -1641,7 +1696,7 @@ class _ProfileTabState extends State<ProfileTab> {
               // Name editing panel
               Text(
                 'Personal Details',
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: AppColors.onboardingAccent,
@@ -1658,10 +1713,10 @@ class _ProfileTabState extends State<ProfileTab> {
                     children: [
                       TextField(
                         controller: _profileNameController,
-                        style: GoogleFonts.inter(color: Colors.white),
+                        style: AppFonts.sg(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Display Name',
-                          labelStyle: GoogleFonts.inter(color: AppColors.onboardingTextSecondary),
+                          labelStyle: AppFonts.sg(color: AppColors.onboardingTextSecondary),
                           enabledBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Colors.white24),
                           ),
@@ -1693,7 +1748,7 @@ class _ProfileTabState extends State<ProfileTab> {
                           ),
                           child: Text(
                             'Save Changes',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                            style: AppFonts.sg(fontWeight: FontWeight.bold),
                           ),
                         ),
                       )
@@ -1703,10 +1758,79 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               const SizedBox(height: 24),
 
+              Text(
+                'Reading momentum',
+                style: AppFonts.sg(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.onboardingAccent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              GlassCard(
+                borderRadius: 20,
+                bgColor: AppColors.onboardingSurface.withOpacity(0.4),
+                borderColor: Colors.white.withOpacity(0.08),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.local_fire_department_rounded, color: AppColors.warning, size: 34),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${userProvider.currentStreak} day streak',
+                              style: AppFonts.sg(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Best: ${userProvider.longestStreak} days · Open a story each day to keep it going.',
+                              style: AppFonts.sg(color: AppColors.onboardingTextSecondary, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Text(
+                'Your writing',
+                style: AppFonts.sg(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.onboardingAccent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              GlassCard(
+                borderRadius: 20,
+                bgColor: AppColors.onboardingSurface.withOpacity(0.4),
+                borderColor: Colors.white.withOpacity(0.08),
+                child: ListTile(
+                  leading: const Icon(Icons.auto_stories_rounded, color: AppColors.highlight),
+                  title: Text(
+                    'My stories',
+                    style: AppFonts.sg(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${userProvider.userBlogs.length} private ${userProvider.userBlogs.length == 1 ? 'story' : 'stories'} on this device',
+                    style: AppFonts.sg(color: AppColors.onboardingTextSecondary, fontSize: 11),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white30),
+                  onTap: () => context.push('/my-blogs'),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               // System controls
               Text(
                 'System Cache',
-                style: GoogleFonts.inter(
+                style: AppFonts.sg(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: AppColors.onboardingAccent,
@@ -1721,11 +1845,11 @@ class _ProfileTabState extends State<ProfileTab> {
                   leading: const Icon(Icons.delete_outline_rounded, color: Colors.white),
                   title: Text(
                     'Clear Offline Cache',
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: AppFonts.sg(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
                     'Delete local article cache database',
-                    style: GoogleFonts.inter(color: AppColors.onboardingTextSecondary, fontSize: 11),
+                    style: AppFonts.sg(color: AppColors.onboardingTextSecondary, fontSize: 11),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white30),
                   onTap: () async {
@@ -1739,7 +1863,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   },
                 ),
               ),
-              const SizedBox(height: 100),
+              SizedBox(height: AppSpacing.navClearance(context)),
             ],
           ),
         ),

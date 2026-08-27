@@ -4,11 +4,15 @@ import 'package:animations/animations.dart';
 import '../providers/user_provider.dart';
 import '../screens/home_screen.dart';
 import '../screens/onboarding_screen.dart';
+import '../screens/kaand_splash_screen.dart';
 import '../screens/detail_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/blogs_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/user_blogs_screen.dart';
+import '../screens/scores_tab.dart';
 import '../models/article.dart';
+import '../models/user_blog.dart';
 import '../screens/discover/discover_page.dart';
 import '../screens/discover/category_details_page.dart';
 import '../screens/discover/publishers_page.dart';
@@ -108,16 +112,20 @@ Page<T> buildDetailTransitionPage<T>({
   );
 }
 
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'root');
 
 GoRouter createRouter(UserProvider userProvider) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: userProvider,
     redirect: (context, state) {
       final isOnboarded = userProvider.isOnboarded;
       final goingToOnboarding = state.matchedLocation == '/onboarding';
+      final goingToSplash = state.matchedLocation == '/splash';
+
+      if (goingToSplash) return null;
 
       if (!isOnboarded && !goingToOnboarding) {
         return '/onboarding';
@@ -129,6 +137,14 @@ GoRouter createRouter(UserProvider userProvider) {
     },
     routes: [
       GoRoute(
+        path: '/splash',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => buildFadeThroughPage<void>(
+          key: state.pageKey,
+          child: const KaandSplashScreen(),
+        ),
+      ),
+      GoRoute(
         path: '/onboarding',
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => buildFadeThroughPage<void>(
@@ -136,7 +152,7 @@ GoRouter createRouter(UserProvider userProvider) {
           child: const OnboardingScreen(),
         ),
       ),
-      
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return HomeScreen(navigationShell: navigationShell);
@@ -167,6 +183,17 @@ GoRouter createRouter(UserProvider userProvider) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/scores',
+                pageBuilder: (context, state) => buildSharedAxisPage<void>(
+                  key: state.pageKey,
+                  child: const ScoresTab(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/bookmarks',
                 pageBuilder: (context, state) => buildSharedAxisPage<void>(
                   key: state.pageKey,
@@ -188,7 +215,7 @@ GoRouter createRouter(UserProvider userProvider) {
           ),
         ],
       ),
-      
+
       // Full screen / pushed routes
       GoRoute(
         path: '/detail',
@@ -223,6 +250,22 @@ GoRouter createRouter(UserProvider userProvider) {
         pageBuilder: (context, state) => buildFadeThroughPage<void>(
           key: state.pageKey,
           child: const SettingsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/my-blogs',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => buildFadeThroughPage<void>(
+          key: state.pageKey,
+          child: const UserBlogsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/write-blog',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => buildFadeThroughPage<void>(
+          key: state.pageKey,
+          child: UserBlogEditorScreen(blog: state.extra as UserBlog?),
         ),
       ),
       GoRoute(

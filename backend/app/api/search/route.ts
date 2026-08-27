@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCategoryNews } from '@/lib/rss';
 import { cache } from '@/lib/cache';
+import { searchArchiveArticles } from '@/lib/ingest';
 import { Article } from '@/lib/types';
 import { categoryFeeds } from '@/lib/feeds';
 
@@ -11,8 +12,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q')?.trim().toLowerCase();
     const category = searchParams.get('category')?.trim().toLowerCase() || '';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const requestedPage = parseInt(searchParams.get('page') || '1', 10);
+    const requestedLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+    const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(1, requestedLimit)) : 20;
 
     if (!q) {
       return NextResponse.json({
@@ -44,6 +47,10 @@ export async function GET(request: NextRequest) {
       const srcMatch = art.source?.toLowerCase().includes(q) || false;
       return titleMatch || descMatch || srcMatch;
     });
+
+    // Fuse with archive results so searches reach beyond the live cache window
+    const archiveHits = await searchArchiveArticles(q, 50);
+    filtered.push(...archiveHits);
 
     // Deduplicate by URL
     const seen = new Set<string>();

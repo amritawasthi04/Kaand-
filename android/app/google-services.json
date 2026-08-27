@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "401949958633",
-    "project_id": "kaand-6c9d7",
-    "storage_bucket": "kaand-6c9d7.firebasestorage.app"
+    "project_number": "782157640660",
+    "project_id": "kaand-476a7",
+    "storage_bucket": "kaand-476a7.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:401949958633:android:0c69762e602a7fb9466b78",
+        "mobilesdk_app_id": "1:782157640660:android:3f70bf8fb9bd3d328cdc41",
         "android_client_info": {
-          "package_name": "com.example.newstler"
+          "package_name": "com.amritawasthi.kaand"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDLqlKa-iyDlQ-V6DZAuU2yD3O0xLVkWKk"
+          "current_key": "AIzaSyCLBUanOj_dM5c1RVY4sI_YI4Q2qIeygsU"
         }
       ],
       "services": {

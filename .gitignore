@@ -68,3 +68,9 @@ pnpm-debug.log*
 # Scraper cache/outputs
 /scraper/articles.json
 /scraper/output.json
+
+# ts incremental build info
+tsconfig.tsbuildinfo
+
+# opencode local session/state
+/.opencode/

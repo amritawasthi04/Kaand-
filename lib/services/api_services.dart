@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
 import '../core/constants.dart';
@@ -8,14 +6,18 @@ import '../models/article.dart';
 final Dio dio = _createDio();
 
 Dio _createDio() {
-  final baseUrl = (!kIsWeb && Platform.isAndroid)
-      ? 'http://10.0.2.2:3000/api/'
-      : 'http://127.0.0.1:3000/api/';
+  const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  const defaultBaseUrl = 'https://kaand-cyan.vercel.app/api/';
+
+  // Format configured or default base URL cleanly with trailing slash
+  final String rawBaseUrl =
+      configuredBaseUrl.isNotEmpty ? configuredBaseUrl : defaultBaseUrl;
+  final String baseUrl = '${rawBaseUrl.replaceFirst(RegExp(r'/+$'), '')}/';
 
   final options = BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 20),
+    receiveTimeout: const Duration(seconds: 20),
   );
 
   final client = Dio(options);
@@ -33,7 +35,8 @@ Dio _createDio() {
 }
 
 class NewsService {
-  Future<List<Article>> fetchNews({String? category, String? search, int page = 1, int limit = 20}) async {
+  Future<List<Article>> fetchNews(
+      {String? category, String? search, int page = 1, int limit = 20}) async {
     final response = await dio.get('news', queryParameters: {
       if (category != null) 'category': category,
       if (search != null) 'search': search,
@@ -54,7 +57,8 @@ class ArticleService {
     if (response.statusCode == 200 && response.data['success'] == true) {
       return Article.fromJson(response.data['data']);
     }
-    throw Exception(response.data['message'] ?? 'Failed to load article details');
+    throw Exception(
+        response.data['message'] ?? 'Failed to load article details');
   }
 }
 
@@ -68,7 +72,8 @@ class CategoryService {
     throw Exception(response.data['message'] ?? 'Failed to load categories');
   }
 
-  Future<List<Article>> getCategoryNews(String categoryId, {int page = 1, int limit = 20}) async {
+  Future<List<Article>> getCategoryNews(String categoryId,
+      {int page = 1, int limit = 20}) async {
     final response = await dio.get('category/$categoryId', queryParameters: {
       'page': page,
       'limit': limit,
@@ -82,18 +87,30 @@ class CategoryService {
 }
 
 class SearchService {
-  Future<List<Article>> searchArticles(String query, {String? category, int page = 1, int limit = 20}) async {
-    final response = await dio.get('search', queryParameters: {
-      'q': query,
-      if (category != null) 'category': category,
-      'page': page,
-      'limit': limit,
-    });
-    if (response.statusCode == 200 && response.data['success'] == true) {
-      final List articles = response.data['data']['articles'];
-      return articles.map((json) => Article.fromJson(json)).toList();
+  Future<List<Article>> searchArticles(String query,
+      {String? category, int page = 1, int limit = 20}) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) return [];
+
+    try {
+      final response = await dio.get('search', queryParameters: {
+        'q': trimmedQuery,
+        if (category != null && category.trim().isNotEmpty)
+          'category': category.trim(),
+        'page': page,
+        'limit': limit,
+      });
+      if (response.statusCode == 200 &&
+          response.data != null &&
+          response.data['success'] == true) {
+        final List articles = response.data['data']['articles'] ?? [];
+        return articles.map((json) => Article.fromJson(json)).toList();
+      }
+      throw Exception(response.data?['message'] ?? 'Search failed');
+    } catch (e) {
+      print('[SearchService] Error searching articles for "$trimmedQuery": $e');
+      rethrow;
     }
-    throw Exception(response.data['message'] ?? 'Search failed');
   }
 }
 
@@ -107,7 +124,8 @@ class PublisherService {
     throw Exception(response.data['message'] ?? 'Failed to load publishers');
   }
 
-  Future<List<Article>> getPublisherNews(String publisherId, {int page = 1, int limit = 20}) async {
+  Future<List<Article>> getPublisherNews(String publisherId,
+      {int page = 1, int limit = 20}) async {
     final response = await dio.get('publisher/$publisherId', queryParameters: {
       'page': page,
       'limit': limit,
@@ -116,13 +134,15 @@ class PublisherService {
       final List articles = response.data['data']['articles'];
       return articles.map((json) => Article.fromJson(json)).toList();
     }
-    throw Exception(response.data['message'] ?? 'Failed to load publisher news');
+    throw Exception(
+        response.data['message'] ?? 'Failed to load publisher news');
   }
 }
 
 class TrendingService {
   Future<List<Article>> getTrending({int limit = 20}) async {
-    final response = await dio.get('trending', queryParameters: {'limit': limit});
+    final response =
+        await dio.get('trending', queryParameters: {'limit': limit});
     if (response.statusCode == 200 && response.data['success'] == true) {
       final List articles = response.data['data'];
       return articles.map((json) => Article.fromJson(json)).toList();
@@ -174,14 +194,16 @@ class NotificationService {
       {
         'id': '2',
         'title': 'Tech Update',
-        'body': 'DeepSeek reportedly in talks to raise \$1.5B before listing IPO.',
+        'body':
+            'DeepSeek reportedly in talks to raise \$1.5B before listing IPO.',
         'time': '1h ago',
         'type': 'news'
       },
       {
         'id': '3',
         'title': 'Sports Alert',
-        'body': 'Diego Maradona tribute held in Argentina for World Cup anniversary.',
+        'body':
+            'Diego Maradona tribute held in Argentina for World Cup anniversary.',
         'time': '3h ago',
         'type': 'sports'
       }
